@@ -6,7 +6,14 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"ignoreUnknown": false
+		"ignoreUnknown": false,
+		"includes": [
+			"src/**",
+			"!src/prisma/generated",
+			"prisma.config.ts",
+			"module.ts",
+			"service.ts"
+		]
 	},
 	"formatter": {
 		"enabled": true,
@@ -15,7 +22,10 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"preset": "recommended"
+			"preset": "recommended",
+			"suspicious": {
+				"noExplicitAny": "off"
+			}
 		}
 	},
 	"javascript": {
