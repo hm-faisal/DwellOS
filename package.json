@@ -7,6 +7,9 @@
     "node": "^22.18.0 || >=24.11.0"
   },
   "scripts": {
+    "format": "pnpx @biomejs/biome format --write",
+    "lint": "pnpx @biomejs/biome lint --write",
+    "biome": "pnpx @biomejs/biome check --write",
     "build": "tsdown",
     "composer:deploy": "prisma deploy module.ts",
     "composer:dev": "prisma dev module.ts",
