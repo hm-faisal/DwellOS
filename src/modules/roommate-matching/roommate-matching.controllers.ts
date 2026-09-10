@@ -17,7 +17,8 @@ const upsertProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getProfile = catchAsync(async (req: Request, res: Response) => {
-	const userId = req.params.userId as string;
+	const user = req.user!;
+	const userId = (req.params.userId as string) || user.id;
 	const result = await roommateMatchingService.getProfile(userId);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
@@ -46,10 +47,12 @@ const expressInterest = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user!;
 	const targetUserId = req.params.targetUserId as string;
 	const interested = req.body?.interested !== false;
+	const message = req.body?.message as string | undefined;
 	const result = await roommateMatchingService.expressInterest(
 		user.id,
 		targetUserId,
 		interested,
+		message,
 	);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,

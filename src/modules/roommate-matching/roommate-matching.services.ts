@@ -150,9 +150,10 @@ export class RoommateMatchingService {
 
 	async getMatches(
 		currentUserId: string,
-		query?: { cursor?: string; limit?: number },
+		query?: { cursor?: string; limit?: number; minScore?: number },
 	) {
 		const limit = query?.limit || 20;
+		const minScore = query?.minScore ?? 0;
 		const myProfile = await prisma.RoommateProfile.first({
 			userId: currentUserId,
 		});
@@ -178,6 +179,14 @@ export class RoommateMatchingService {
 				myProfile,
 				other,
 			);
+			if (score < minScore) continue;
+
+			const [u1, u2] = [currentUserId, other.userId].sort();
+			const existingMatch = await prisma.RoommateMatch.first({
+				user1Id: u1,
+				user2Id: u2,
+			});
+
 			matches.push({
 				id: other.id,
 				user: {
@@ -188,6 +197,8 @@ export class RoommateMatchingService {
 				profile: other,
 				score,
 				breakdown,
+				matchStatus: existingMatch?.status ?? null,
+				mutualInterest: existingMatch?.status === 'MUTUAL_INTEREST',
 			});
 		}
 
@@ -199,6 +210,7 @@ export class RoommateMatchingService {
 		currentUserId: string,
 		targetUserId: string,
 		interested = true,
+		message?: string,
 	) {
 		if (currentUserId === targetUserId) {
 			throw new BusinessRuleError('Cannot express interest in yourself');
@@ -208,6 +220,8 @@ export class RoommateMatchingService {
 		if (!target) {
 			throw new NotFoundError('Target user not found');
 		}
+
+		const currentUser = await prisma.User.first({ id: currentUserId });
 
 		// Normalize pair order
 		const [u1, u2] = [currentUserId, targetUserId].sort();
@@ -234,6 +248,26 @@ export class RoommateMatchingService {
 				createdAt: nowInstant(),
 				updatedAt: nowInstant(),
 			});
+
+			if (interested) {
+				await prisma.Notification.create({
+					id: crypto.randomUUID(),
+					userId: targetUserId,
+					title: 'New Roommate Interest!',
+					message:
+						message ||
+						`${currentUser?.name || 'A user'} expressed interest in rooming with you!`,
+					category: 'MATCH',
+					channel: 'IN_APP',
+					isRead: false,
+					data: JSON.stringify({
+						matchId: match.id,
+						fromUserId: currentUserId,
+						message,
+					}),
+					createdAt: nowInstant(),
+				});
+			}
 		} else {
 			const u1Interest = isUser1 ? interested : match.user1Interest;
 			const u2Interest = !isUser1 ? interested : match.user2Interest;
@@ -270,13 +304,31 @@ export class RoommateMatchingService {
 					id: crypto.randomUUID(),
 					userId: targetUserId,
 					title: 'Mutual Roommate Interest!',
-					message: `A roommate match with interest has been confirmed!`,
+					message: 'A roommate match with interest has been confirmed!',
 					category: 'MATCH',
 					channel: 'IN_APP',
 					isRead: false,
 					data: JSON.stringify({
 						matchId: match.id,
 						targetUserId: currentUserId,
+					}),
+					createdAt: nowInstant(),
+				});
+			} else if (interested) {
+				await prisma.Notification.create({
+					id: crypto.randomUUID(),
+					userId: targetUserId,
+					title: 'New Roommate Interest!',
+					message:
+						message ||
+						`${currentUser?.name || 'A user'} expressed interest in rooming with you!`,
+					category: 'MATCH',
+					channel: 'IN_APP',
+					isRead: false,
+					data: JSON.stringify({
+						matchId: match.id,
+						fromUserId: currentUserId,
+						message,
 					}),
 					createdAt: nowInstant(),
 				});
@@ -296,17 +348,21 @@ export class RoommateMatchingService {
 			throw new NotFoundError('Room not found');
 		}
 
-		const property = await prisma.Property.first({ id: room.propertyId });
-		if (property && !property.requiresRoommateApproval) {
-			console.log(
-				`[RoommateApproval] Property ${property.id} does not require roommate approval.`,
-			);
+		let applicationId = input.applicationId ?? null;
+		if (!applicationId && input.applicantId) {
+			const app = await prisma.Application.first({
+				roomId,
+				applicantId: input.applicantId,
+			});
+			if (app) {
+				applicationId = app.id;
+			}
 		}
 
 		const approval = await prisma.RoommateApproval.create({
 			id: crypto.randomUUID(),
 			roomId,
-			applicationId: input.applicationId ?? null,
+			applicationId,
 			approverId,
 			status: input.status,
 			comments: input.comments ?? null,

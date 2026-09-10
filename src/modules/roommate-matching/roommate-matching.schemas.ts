@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const upsertProfileSchema = z.object({
 	body: z
 		.object({
+			budget: z.number().int().nonnegative().max(100000000).optional(),
 			budgetMin: z.number().int().nonnegative().max(100000000).optional(),
 			budgetMax: z.number().int().nonnegative().max(100000000).optional(),
 			lifestyleTags: z
@@ -51,6 +52,20 @@ export const upsertProfileSchema = z.object({
 				}
 			}
 
+			const toMinor = (amount?: number) => {
+				if (amount === undefined) return undefined;
+				return amount > 0 && amount < 10000 ? amount * 100 : amount;
+			};
+
+			const rawBudget = toMinor(val.budget);
+			let budgetMin = toMinor(val.budgetMin);
+			let budgetMax = toMinor(val.budgetMax);
+
+			if (rawBudget !== undefined) {
+				budgetMax = budgetMax ?? rawBudget;
+				budgetMin = budgetMin ?? Math.round(rawBudget * 0.7);
+			}
+
 			const tags = [...(val.lifestyleTags ?? [])];
 			if (val.preferredCity && !tags.includes(val.preferredCity)) {
 				tags.push(val.preferredCity);
@@ -77,8 +92,8 @@ export const upsertProfileSchema = z.object({
 			const pets = val.pets !== undefined ? val.pets : (val.hasPets ?? false);
 
 			return {
-				budgetMin: val.budgetMin,
-				budgetMax: val.budgetMax,
+				budgetMin,
+				budgetMax,
 				lifestyleTags: tags,
 				sleepSchedule: val.sleepSchedule,
 				workSchedule: val.workSchedule,
@@ -94,9 +109,10 @@ export const upsertProfileSchema = z.object({
 export const getProfileParamsSchema = z.object({
 	params: z
 		.object({
-			userId: z.string().trim().min(1, 'User ID is required'),
+			userId: z.string().trim().min(1, 'User ID is required').optional(),
 		})
-		.passthrough(),
+		.passthrough()
+		.optional(),
 });
 
 export const matchesQuerySchema = z.object({
@@ -104,6 +120,7 @@ export const matchesQuerySchema = z.object({
 		.object({
 			cursor: z.string().trim().min(1).optional(),
 			limit: z.coerce.number().int().min(1).max(100).default(20),
+			minScore: z.coerce.number().min(0).max(100).optional(),
 		})
 		.passthrough()
 		.optional(),
@@ -118,6 +135,7 @@ export const expressInterestSchema = z.object({
 	body: z
 		.object({
 			interested: z.boolean().default(true),
+			message: z.string().trim().max(1000).optional(),
 		})
 		.passthrough()
 		.optional(),
@@ -132,10 +150,21 @@ export const roommateApprovalSchema = z.object({
 	body: z
 		.object({
 			applicationId: z.string().trim().min(1).optional(),
-			status: z.enum(['APPROVED', 'REJECTED']),
+			applicantId: z.string().trim().min(1).optional(),
+			status: z.enum(['APPROVED', 'REJECTED']).optional(),
+			decision: z.enum(['APPROVED', 'REJECTED']).optional(),
 			comments: z.string().trim().max(1000).optional(),
+			comment: z.string().trim().max(1000).optional(),
 		})
-		.passthrough(),
+		.passthrough()
+		.transform((val) => ({
+			applicationId: val.applicationId,
+			applicantId: val.applicantId,
+			status: (val.status ?? val.decision ?? 'APPROVED') as
+				| 'APPROVED'
+				| 'REJECTED',
+			comments: val.comments ?? val.comment,
+		})),
 });
 
 export type UpsertProfileInput = z.infer<typeof upsertProfileSchema>['body'];

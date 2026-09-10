@@ -19,11 +19,24 @@ router.post(
 	RoommateMatchingController.upsertProfile,
 );
 
+router.put(
+	'/roommate-profile',
+	authenticate,
+	validateRequest(upsertProfileSchema),
+	RoommateMatchingController.upsertProfile,
+);
+
 router.patch(
 	'/roommate-profile',
 	authenticate,
 	validateRequest(upsertProfileSchema),
 	RoommateMatchingController.upsertProfile,
+);
+
+router.get(
+	'/roommate-profile',
+	authenticate,
+	RoommateMatchingController.getProfile,
 );
 
 router.get(
