@@ -1,7 +1,7 @@
 import process from 'node:process';
 import { envConfig } from '../../config/index.ts';
 import { pingCloudinary } from '../../libs/cloudinary.ts';
-import { connectDatabase } from '../../libs/db.ts';
+import { connectDatabase } from '../../prisma/db.ts';
 import { verifyEmailConnection } from '../../libs/nodemailer.ts';
 import { redisService } from '../../libs/redis.ts';
 

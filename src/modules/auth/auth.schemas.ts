@@ -1,39 +1,41 @@
 import { z } from 'zod';
-import emailSchema from '@/schemas/Email.schema.ts';
-import passwordSchema from '@/schemas/Password.schema.ts';
 
 export const registerSchema = z.object({
-	body: z.object({
-		email: emailSchema,
-		password: passwordSchema,
-		name: z.string().trim().min(2).optional(),
-		username: z.string().trim().min(3).optional(),
-	}),
+	body: z
+		.object({
+			email: z.email('Invalid email address format').toLowerCase(),
+			password: z
+				.string()
+				.min(8, 'Password must be at least 8 characters')
+				.max(128, 'Password cannot exceed 128 characters'),
+			name: z
+				.string()
+				.trim()
+				.min(2, 'Name must be at least 2 characters')
+				.max(100),
+			phone: z.string().trim().max(30).optional(),
+			role: z.enum(['TENANT', 'OWNER']).default('TENANT'),
+		})
+		.strict(),
 });
 
 export const loginSchema = z.object({
-	body: z.object({
-		email: emailSchema,
-		password: z.string().min(1, 'Password is required'),
-	}),
+	body: z
+		.object({
+			email: z.email('Invalid email address format').toLowerCase(),
+			password: z.string().min(1, 'Password is required').max(128),
+		})
+		.strict(),
 });
 
-export const sendOtpSchema = z.object({
-	body: z.object({
-		email: emailSchema,
-	}),
+export const refreshTokenSchema = z.object({
+	body: z
+		.object({
+			refreshToken: z.string().trim().min(1, 'Refresh token is required'),
+		})
+		.strict(),
 });
 
-export const verifyOtpSchema = z.object({
-	body: z.object({
-		email: emailSchema,
-		otp: z.string().length(6, 'OTP must be exactly 6 digits'),
-	}),
-});
-
-export default {
-	registerSchema,
-	loginSchema,
-	sendOtpSchema,
-	verifyOtpSchema,
-};
+export type RegisterInput = z.infer<typeof registerSchema>['body'];
+export type LoginInput = z.infer<typeof loginSchema>['body'];
+export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>['body'];

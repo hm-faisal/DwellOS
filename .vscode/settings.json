@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "contract.prisma": "prisma-next",
+    "*.prisma": "prisma-next"
+  }
+}

@@ -1,0 +1,2684 @@
+{
+  "info": {
+    "name": "DwellOS Backend API",
+    "description": "Complete Postman collection for DwellOS — Housing & Roommate Management Platform. Built with Express.js, TypeScript, and Prisma 8.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "propertyId",
+      "value": "prop_sample_1",
+      "type": "string"
+    },
+    {
+      "key": "roomId",
+      "value": "room_sample_1",
+      "type": "string"
+    },
+    {
+      "key": "leaseId",
+      "value": "lease_sample_1",
+      "type": "string"
+    },
+    {
+      "key": "applicationId",
+      "value": "app_sample_1",
+      "type": "string"
+    },
+    {
+      "key": "invoiceId",
+      "value": "inv_sample_1",
+      "type": "string"
+    },
+    {
+      "key": "billId",
+      "value": "bill_sample_1",
+      "type": "string"
+    },
+    {
+      "key": "maintenanceId",
+      "value": "maint_sample_1",
+      "type": "string"
+    },
+    {
+      "key": "documentId",
+      "value": "doc_sample_1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00. System & Health",
+      "item": [
+        {
+          "name": "Welcome / API Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Postman Collection JSON",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/postman_collection.json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "postman_collection.json"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01. Auth",
+      "item": [
+        {
+          "name": "Register Tenant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var res = pm.response.json();",
+                  "    if (res.data && res.data.accessToken) {",
+                  "        pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "    }",
+                  "    if (res.data && res.data.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alex.tenant@example.com\",\n  \"password\": \"Password123!\",\n  \"name\": \"Alex Rivera\",\n  \"phone\": \"+15125550199\",\n  \"role\": \"TENANT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register Owner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var res = pm.response.json();",
+                  "    if (res.data && res.data.accessToken) {",
+                  "        pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "    }",
+                  "    if (res.data && res.data.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sarah.owner@example.com\",\n  \"password\": \"Password123!\",\n  \"name\": \"Sarah Jenkins\",\n  \"phone\": \"+15125550188\",\n  \"role\": \"OWNER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var res = pm.response.json();",
+                  "    if (res.data && res.data.accessToken) {",
+                  "        pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "    }",
+                  "    if (res.data && res.data.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alex.tenant@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Refresh Access Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var res = pm.response.json();",
+                  "    if (res.data && res.data.accessToken) {",
+                  "        pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Current Profile (/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Users",
+      "item": [
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "user_sample_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alex Rivera Updated\",\n  \"phone\": \"+15125559900\",\n  \"avatarUrl\": \"https://images.unsplash.com/photo-1534528741775-53994a69daeb\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "user_sample_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Suspend User (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/:id/suspend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                ":id",
+                "suspend"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "user_sample_id"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Properties",
+      "item": [
+        {
+          "name": "Create Property (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Austin Modern Coliving\",\n  \"type\": \"APARTMENT\",\n  \"address\": \"404 Colorado St\",\n  \"city\": \"Austin\",\n  \"state\": \"TX\",\n  \"zipCode\": \"78701\",\n  \"country\": \"USA\",\n  \"latitude\": 30.2672,\n  \"longitude\": -97.7431,\n  \"amenities\": [\n    \"GIGABIT_WIFI\",\n    \"ROOFTOP_LOUNGE\",\n    \"IN_UNIT_LAUNDRY\",\n    \"GYM\"\n  ],\n  \"houseRules\": [\n    \"No indoor smoking\",\n    \"Quiet hours after 10 PM\"\n  ],\n  \"description\": \"Spacious downtown co-living hub with modern furnishings and shared coworking amenities.\",\n  \"images\": [\n    \"https://images.unsplash.com/photo-1545324418-cc1a3fa10c00\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Properties",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties?limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Property By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties/{{propertyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties",
+                "{{propertyId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Property",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Austin Modern Coliving (Updated)\",\n  \"description\": \"Updated description with enhanced amenities.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties/{{propertyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties",
+                "{{propertyId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Assign Manager to Property",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"managerId\": \"manager_user_id\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties/{{propertyId}}/managers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties",
+                "{{propertyId}}",
+                "managers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Revoke Property Manager",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties/{{propertyId}}/managers/:managerId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties",
+                "{{propertyId}}",
+                "managers",
+                ":managerId"
+              ],
+              "variable": [
+                {
+                  "key": "managerId",
+                  "value": "manager_user_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Archive Property",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties/{{propertyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties",
+                "{{propertyId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Rooms",
+      "item": [
+        {
+          "name": "Create Room in Property",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Suite 1A - Master Bedroom\",\n  \"baseRent\": 135000,\n  \"deposit\": 135000,\n  \"capacity\": 1,\n  \"dimensions\": \"14x16 ft\",\n  \"hasPrivateBath\": true,\n  \"isFurnished\": true,\n  \"amenities\": [\n    \"ENSUITE_BATH\",\n    \"WALK_IN_CLOSET\",\n    \"BALCONY\"\n  ],\n  \"images\": [\n    \"https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties/{{propertyId}}/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties",
+                "{{propertyId}}",
+                "rooms"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Rooms in Property",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties/{{propertyId}}/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties",
+                "{{propertyId}}",
+                "rooms"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Room By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rooms",
+                "{{roomId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Room (Optimistic Lock with Version)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"baseRent\": 140000,\n  \"isAvailable\": true,\n  \"version\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rooms",
+                "{{roomId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Archive Room",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rooms",
+                "{{roomId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Search & Discovery",
+      "item": [
+        {
+          "name": "Search Properties (Fair Housing Guarded)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/search/properties?city=Austin&minPrice=50000&maxPrice=150000&isFurnished=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "search",
+                "properties"
+              ],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Austin"
+                },
+                {
+                  "key": "minPrice",
+                  "value": "50000"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "150000"
+                },
+                {
+                  "key": "isFurnished",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Saved Searches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/search/saved",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "search",
+                "saved"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Save Search Criteria",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Downtown Austin Under $1500\",\n  \"filters\": {\n    \"city\": \"Austin\",\n    \"maxPrice\": 150000,\n    \"isFurnished\": true\n  },\n  \"alertEnabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/search/saved",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "search",
+                "saved"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Saved Search",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/search/saved/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "search",
+                "saved",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "saved_search_id"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Roommate Matching",
+      "item": [
+        {
+          "name": "Create / Update Roommate Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Software developer working remotely, loves cooking, quiet on weeknights.\",\n  \"budgetMin\": 80000,\n  \"budgetMax\": 150000,\n  \"moveInDate\": \"2026-10-01T00:00:00.000Z\",\n  \"preferredCity\": \"Austin\",\n  \"cleanliness\": 4,\n  \"sleepSchedule\": \"EARLY_BIRD\",\n  \"dietaryPref\": \"Vegetarian friendly\",\n  \"isSmoker\": false,\n  \"hasPets\": false,\n  \"workSchedule\": \"REMOTE\",\n  \"socialLevel\": 3,\n  \"lifestyleTraits\": {\n    \"introverted\": true,\n    \"hobby\": \"cycling\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roommate-profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roommate-profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Current Roommate Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roommate-profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roommate-profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Explainable Roommate Matches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/matches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "matches"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Vote on Prospective Roommate Applicant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicantId\": \"applicant_user_id\",\n  \"decision\": \"APPROVED\",\n  \"comment\": \"Great profile match and common schedules!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/roommate-approval",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rooms",
+                "{{roomId}}",
+                "roommate-approval"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07. Viewing Requests",
+      "item": [
+        {
+          "name": "Request Room Viewing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{roomId}}\",\n  \"preferredSlot\": \"2026-09-15T15:00:00.000Z\",\n  \"alternativeSlot\": \"2026-09-16T11:00:00.000Z\",\n  \"message\": \"Interested in the master suite, would love a walkthrough.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viewing-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viewing-requests"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Viewing Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viewing-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viewing-requests"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Viewing Request By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viewing-requests/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viewing-requests",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "viewing_request_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Viewing Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/viewing-requests/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "viewing-requests",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "viewing_request_id"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08. Applications",
+      "item": [
+        {
+          "name": "Submit Application (Locks Room for 72h)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{roomId}}\",\n  \"desiredMoveIn\": \"2026-10-01T00:00:00.000Z\",\n  \"leaseTermMonths\": 12,\n  \"documents\": [\n    \"https://storage.dwellos.io/docs/paystub_1.pdf\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Applications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Application Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applications",
+                "{{applicationId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Additional Application Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documentUrl\": \"https://storage.dwellos.io/docs/w2_form.pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applications/{{applicationId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applications",
+                "{{applicationId}}",
+                "documents"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Application Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"UNDER_REVIEW\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applications/{{applicationId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applications",
+                "{{applicationId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Approve Application (Transactional Lease & Audit)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/applications/{{applicationId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "applications",
+                "{{applicationId}}",
+                "approve"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "09. Tenant Verification",
+      "item": [
+        {
+          "name": "Submit Verification Documents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idType\": \"PASSPORT\",\n  \"idDocumentUrl\": \"https://storage.dwellos.io/verify/passport.pdf\",\n  \"incomeProofUrl\": \"https://storage.dwellos.io/verify/paystub_august.pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/verifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "verifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Verifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/verifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "verifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Verification By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/verifications/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "verifications",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "verification_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Review Verification (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"VERIFIED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/verifications/:id/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "verifications",
+                ":id",
+                "review"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "verification_id"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Leases",
+      "item": [
+        {
+          "name": "Create Lease Agreement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{roomId}}\",\n  \"startDate\": \"2026-10-01T00:00:00.000Z\",\n  \"endDate\": \"2027-09-30T00:00:00.000Z\",\n  \"rentAmount\": 135000,\n  \"depositAmount\": 135000,\n  \"billingCycleDay\": 1,\n  \"tenantIds\": [\n    \"tenant_user_id\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leases"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Leases",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leases"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Lease Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leases/{{leaseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leases",
+                "{{leaseId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Roommate to Lease",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"roommate_user_id\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leases/{{leaseId}}/roommates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leases",
+                "{{leaseId}}",
+                "roommates"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Roommate from Lease",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leases/{{leaseId}}/roommates/:userId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leases",
+                "{{leaseId}}",
+                "roommates",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "roommate_user_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Renew Lease",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newEndDate\": \"2028-09-30T00:00:00.000Z\",\n  \"newRentAmount\": 142000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leases/{{leaseId}}/renew",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leases",
+                "{{leaseId}}",
+                "renew"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Terminate Lease",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminationDate\": \"2027-01-31T00:00:00.000Z\",\n  \"reason\": \"Relocating for job opportunity\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leases/{{leaseId}}/terminate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leases",
+                "{{leaseId}}",
+                "terminate"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Rent Tracking & Invoices",
+      "item": [
+        {
+          "name": "List Invoices for Lease",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leases/{{leaseId}}/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leases",
+                "{{leaseId}}",
+                "invoices"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Invoice Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/invoices/{{invoiceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invoices",
+                "{{invoiceId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. Payments (Stripe)",
+      "item": [
+        {
+          "name": "Create SetupIntent (Save Card)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/setup-intent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "setup-intent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pay Rent Invoice (PaymentIntent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoiceId\": \"{{invoiceId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/payment-intent/rent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "payment-intent",
+                "rent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pay Utility Bill Share (PaymentIntent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shareId\": \"bill_share_id\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/payment-intent/bill",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "payment-intent",
+                "bill"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pay Security Deposit (PaymentIntent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leaseId\": \"{{leaseId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/payment-intent/deposit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "payment-intent",
+                "deposit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Refund Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": \"payment_record_id\",\n  \"amount\": 5000,\n  \"reason\": \"Requested by tenant for overpayment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/refund",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "refund"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Stripe Webhook (Deduped)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Stripe-Signature",
+                "value": "t=1700000000,v1=mock_signature"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_test_webhook_123\",\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"pi_test_123\",\n      \"status\": \"succeeded\",\n      \"amount_received\": 135000\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "webhook"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. Utility Bills",
+      "item": [
+        {
+          "name": "Create Property Bill (Exact Split Math)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"ELECTRICITY\",\n  \"totalAmount\": 18450,\n  \"billingPeriod\": \"September 2026\",\n  \"dueDate\": \"2026-10-15T00:00:00.000Z\",\n  \"invoiceUrl\": \"https://storage.dwellos.io/bills/austin_energy_sept.pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties/{{propertyId}}/bills",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties",
+                "{{propertyId}}",
+                "bills"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Property Bills",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/properties/{{propertyId}}/bills",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "properties",
+                "{{propertyId}}",
+                "bills"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Bill Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bills/{{billId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bills",
+                "{{billId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Tenant Bill Shares",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bills/{{billId}}/shares",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bills",
+                "{{billId}}",
+                "shares"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "14. Maintenance Requests",
+      "item": [
+        {
+          "name": "Create Maintenance Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Bathroom sink leaking under cabinet\",\n  \"description\": \"Small persistent drip noticed under bathroom sink P-trap.\",\n  \"priority\": \"MEDIUM\",\n  \"images\": [\n    \"https://images.unsplash.com/photo-1584622650111-993a426fbf0a\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/maintenance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rooms",
+                "{{roomId}}",
+                "maintenance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Maintenance Tickets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/maintenance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "maintenance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Maintenance Ticket By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/maintenance/{{maintenanceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "maintenance",
+                "{{maintenanceId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Ticket & Dispatch Contractor",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"contractorName\": \"Speedy Plumbing Pros\",\n  \"scheduledAt\": \"2026-09-12T10:00:00.000Z\",\n  \"cost\": 8500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/maintenance/{{maintenanceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "maintenance",
+                "{{maintenanceId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rate Completed Maintenance Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"feedback\": \"Plumber arrived on time and fixed the pipe in 15 minutes. Clean job!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/maintenance/{{maintenanceId}}/rate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "maintenance",
+                "{{maintenanceId}}",
+                "rate"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "15. Rental Documents",
+      "item": [
+        {
+          "name": "Upload Lease Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Austin Coliving Standard Lease Agreement\",\n  \"type\": \"LEASE_AGREEMENT\",\n  \"fileUrl\": \"https://storage.dwellos.io/leases/lease_agreement_signed.pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leases/{{leaseId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leases",
+                "{{leaseId}}",
+                "documents"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Documents for Lease",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/leases/{{leaseId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "leases",
+                "{{leaseId}}",
+                "documents"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Document Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documents/{{documentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documents",
+                "{{documentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sign Document (IP & Audit Logged)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"signature\": \"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg==\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documents/{{documentId}}/sign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documents",
+                "{{documentId}}",
+                "sign"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Document Audit Trail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documents/{{documentId}}/audit-log",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documents",
+                "{{documentId}}",
+                "audit-log"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "16. Notifications",
+      "item": [
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/:id/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                ":id",
+                "read"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Notification Preferences",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notification-preferences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notification-preferences"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Notification Preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emailNotifications\": true,\n  \"smsNotifications\": true,\n  \"pushNotifications\": false,\n  \"maintenanceAlerts\": true,\n  \"paymentReminders\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notification-preferences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notification-preferences"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "17. Dashboard",
+      "item": [
+        {
+          "name": "Get Portfolio Overview (Owner / Manager)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dashboard/overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "overview"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Property KPI Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dashboard/properties/{{propertyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "properties",
+                "{{propertyId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "18. Admin & Compliance",
+      "item": [
+        {
+          "name": "List Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"PROPERTY_MANAGER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/:id/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                ":id",
+                "role"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "user_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Disputes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/disputes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "disputes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resolve Dispute",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RESOLVED\",\n  \"resolution\": \"Refund of $50 utility dispute approved and credited to tenant balance.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/disputes/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "disputes",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "dispute_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "View Immutable Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/audit-logs?entityType=ROOM&action=OCCUPANCY_CHANGED",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "entityType",
+                  "value": "ROOM"
+                },
+                {
+                  "key": "action",
+                  "value": "OCCUPANCY_CHANGED"
+                },
+                {
+                  "key": "actorId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

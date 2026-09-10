@@ -25,7 +25,13 @@ export const validateRequest = (
 					req.body = await shape.body.parseAsync(req.body);
 				}
 				if (shape.query) {
-					req.query = (await shape.query.parseAsync(req.query)) as any;
+					const parsedQuery = (await shape.query.parseAsync(req.query)) as any;
+					Object.defineProperty(req, 'query', {
+						value: parsedQuery,
+						writable: true,
+						enumerable: true,
+						configurable: true,
+					});
 				}
 				if (shape.params) {
 					req.params = (await shape.params.parseAsync(req.params)) as any;
@@ -44,9 +50,15 @@ export const validateRequest = (
 					req.body = await validationSchema.body.parseAsync(req.body);
 				}
 				if (validationSchema.query) {
-					req.query = (await validationSchema.query.parseAsync(
+					const parsedQuery = (await validationSchema.query.parseAsync(
 						req.query,
 					)) as any;
+					Object.defineProperty(req, 'query', {
+						value: parsedQuery,
+						writable: true,
+						enumerable: true,
+						configurable: true,
+					});
 				}
 				if (validationSchema.params) {
 					req.params = (await validationSchema.params.parseAsync(

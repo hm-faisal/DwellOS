@@ -1,7 +1,11 @@
+import 'dotenv/config';
+import 'temporal-polyfill/full/global';
 import { createServer, type Server } from 'node:http';
 import process from 'node:process';
 import app from './app.ts';
 import { envConfig } from './config/index.ts';
+import { registerAllJobs } from './jobs/index.ts';
+import { scheduler } from './lib/queue.ts';
 import { connectRedis, disconnectRedis } from './libs/redis.ts';
 import { connectDatabase } from './prisma/db.ts';
 
@@ -30,6 +34,9 @@ const bootstrap = async () => {
 		// Connect to Redis
 		await connectRedis();
 
+		// Start background jobs scheduler
+		registerAllJobs();
+
 		// Start HTTP Server
 		server = createServer(app);
 		server.listen(envConfig.port, '0.0.0.0', () => {
@@ -45,6 +52,8 @@ const bootstrap = async () => {
 
 const handleGracefulShutdown = async (signal: string) => {
 	console.log(`\n[Server] Received ${signal}. Starting graceful shutdown...`);
+
+	scheduler.stop();
 
 	if (server) {
 		server.close(async () => {

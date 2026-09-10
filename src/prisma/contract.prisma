@@ -1,0 +1,564 @@
+// use prisma-next
+// Contract inferred from the live database schema. Edit as needed, then run `prisma contract emit`.
+
+model User {
+  id                           String                  @id(map: "user_pkey")
+  createdAt                    Timestamptz             @default(now())
+  email                        String                  @unique(map: "user_email_key")
+  name                         String
+  password                     String
+  phone                        String?
+  role                         String                  @default("TENANT")
+  status                       String                  @default("ACTIVE")
+  stripeAccountId              String?
+  stripeCustomerId             String?
+  updatedAt                    Timestamptz             @default(now())
+  applications                 Application[]
+  billShares                   BillShare[]
+  disputes                     Dispute[]
+  documentAuditLogs            DocumentAuditLog[]
+  documentSignatures           DocumentSignature[]
+  leaseTenants                 LeaseTenant[]
+  maintenanceRequests          MaintenanceRequest[]
+  notifications                Notification[]
+  notificationPreference       NotificationPreference?
+  payments                     Payment[]
+  properties                   Property[]
+  propertyManagers             PropertyManager[]
+  roommateApprovals            RoommateApproval[]
+  roommateProfile              RoommateProfile?
+  savedSearches                SavedSearch[]
+  verifications                Verification[]
+  viewingRequests              ViewingRequest[]
+  roommateMatches              RoommateMatch[]         @relation(name: "roommateMatch_user1Id_fkey")
+  roommateMatchesRoommateMatch RoommateMatch[]         @relation(name: "roommateMatch_user2Id_fkey")
+
+  @@check(expression: "(role = ANY (ARRAY['TENANT'::text, 'OWNER'::text, 'ADMIN'::text]))", map: "user_role_check_0ed2480f")
+  @@check(expression: "(status = ANY (ARRAY['ACTIVE'::text, 'SUSPENDED'::text, 'BANNED'::text]))", map: "user_status_check_18a7fd43")
+  @@map("user")
+}
+
+model Property {
+  id                       String            @id(map: "property_pkey")
+  address                  String
+  amenities                String[]
+  city                     String
+  country                  String?
+  createdAt                Timestamptz       @default(now())
+  description              String?
+  latitude                 Float?
+  longitude                Float?
+  name                     String
+  ownerId                  String
+  photos                   String[]
+  requiresRoommateApproval Boolean           @default(false)
+  state                    String?
+  status                   String            @default("ACTIVE")
+  stripeAccountId          String?
+  _type                    String            @map("type")
+  updatedAt                Timestamptz       @default(now())
+  zipCode                  String?
+  leases                   Lease[]
+  propertyManagers         PropertyManager[]
+  rooms                    Room[]
+  utilityBills             UtilityBill[]
+  owner                    User              @relation(fields: [ownerId], references: [id], onDelete: Cascade, map: "property_ownerId_fkey")
+
+  @@index([ownerId], name: "property_ownerId_idx")
+  @@check(expression: "(status = ANY (ARRAY['ACTIVE'::text, 'ARCHIVED'::text]))", map: "property_status_check_aef30f3b")
+  @@check(expression: "(type = ANY (ARRAY['APARTMENT'::text, 'HOUSE'::text, 'STUDIO'::text, 'CONDO'::text, 'TOWNHOUSE'::text, 'OTHER'::text]))", map: "property_type_check_9b6fee13")
+  @@map("property")
+}
+
+model Room {
+  id                  String               @id(map: "room_pkey")
+  availableFrom       Timestamptz?
+  createdAt           Timestamptz          @default(now())
+  deposit             Int
+  furnishing          String               @default("UNFURNISHED")
+  leaseTerms          String?
+  maxOccupants        Int                  @default(1)
+  minStayMonths       Int                  @default(1)
+  name                String
+  occupiedSlots       Int                  @default(0)
+  photos              String[]
+  propertyId          String
+  rent                Int
+  size                Int?
+  status              String               @default("AVAILABLE")
+  _type               String               @map("type")
+  updatedAt           Timestamptz          @default(now())
+  version             Int                  @default(1)
+  applications        Application[]
+  leases              Lease[]
+  maintenanceRequests MaintenanceRequest[]
+  roommateApprovals   RoommateApproval[]
+  viewingRequests     ViewingRequest[]
+  property            Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade, map: "room_propertyId_fkey")
+
+  @@index([propertyId], name: "room_propertyId_idx")
+  @@check(expression: "(furnishing = ANY (ARRAY['FURNISHED'::text, 'SEMI_FURNISHED'::text, 'UNFURNISHED'::text]))", map: "room_furnishing_check_1f903f45")
+  @@check(expression: "(status = ANY (ARRAY['AVAILABLE'::text, 'RESERVED'::text, 'OCCUPIED'::text, 'MAINTENANCE'::text, 'ARCHIVED'::text]))", map: "room_status_check_a159f159")
+  @@check(expression: "(type = ANY (ARRAY['PRIVATE'::text, 'SHARED'::text]))", map: "room_type_check_71674863")
+  @@map("room")
+}
+
+model Application {
+  id                   String                @id(map: "application_pkey")
+  createdAt            Timestamptz           @default(now())
+  employment           String?
+  holdExpiresAt        Timestamptz?
+  moveInDate           Timestamptz
+  notes                String?
+  personalInfo         String?
+  references           String?
+  roomId               String
+  status               String                @default("SUBMITTED")
+  tenantId             String
+  updatedAt            Timestamptz           @default(now())
+  applicationDocuments ApplicationDocument[]
+  room                 Room                  @relation(fields: [roomId], references: [id], onDelete: Cascade, map: "application_roomId_fkey")
+  tenant               User                  @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "application_tenantId_fkey")
+
+  @@index([roomId], name: "application_roomId_idx")
+  @@index([tenantId], name: "application_tenantId_idx")
+  @@check(expression: "(status = ANY (ARRAY['SUBMITTED'::text, 'UNDER_REVIEW'::text, 'INFO_REQUESTED'::text, 'APPROVED'::text, 'REJECTED'::text, 'WITHDRAWN'::text, 'EXPIRED'::text]))", map: "application_status_check_52a801f4")
+  @@map("application")
+}
+
+model ApplicationDocument {
+  id            String      @id(map: "applicationDocument_pkey")
+  applicationId String
+  fileUrl       String
+  name          String
+  _type         String      @map("type")
+  uploadedAt    Timestamptz @default(now())
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade, map: "applicationDocument_applicationId_fkey")
+
+  @@index([applicationId], name: "applicationDocument_applicationId_idx")
+  @@map("applicationDocument")
+}
+
+model AuditLog {
+  id          String      @id(map: "auditLog_pkey")
+  action      String
+  actorId     String?
+  afterState  String?
+  beforeState String?
+  createdAt   Timestamptz @default(now())
+  entityId    String
+  entityType  String
+  metadata    String?
+
+  @@map("auditLog")
+}
+
+model UtilityBill {
+  id                 String      @id(map: "utilityBill_pkey")
+  amount             Int
+  billingPeriodEnd   Timestamptz
+  billingPeriodStart Timestamptz
+  category           String
+  createdAt          Timestamptz @default(now())
+  dueDate            Timestamptz
+  proofUrl           String?
+  propertyId         String
+  splitMethod        String      @default("EQUAL")
+  status             String      @default("PENDING")
+  updatedAt          Timestamptz @default(now())
+  billShares         BillShare[]
+  property           Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade, map: "utilityBill_propertyId_fkey")
+
+  @@index([propertyId], name: "utilityBill_propertyId_idx")
+  @@check(expression: "(category = ANY (ARRAY['ELECTRICITY'::text, 'WATER'::text, 'GAS'::text, 'INTERNET'::text, 'TRASH'::text, 'OTHER'::text]))", map: "utilityBill_category_check_56cb25d3")
+  @@check(expression: "(\"splitMethod\" = ANY (ARRAY['EQUAL'::text, 'PERCENTAGE'::text, 'USAGE_BASED'::text]))", map: "utilityBill_splitMethod_check_d98072a3")
+  @@check(expression: "(status = ANY (ARRAY['PENDING'::text, 'PARTIALLY_PAID'::text, 'SETTLED'::text]))", map: "utilityBill_status_check_8cbaf7be")
+  @@map("utilityBill")
+}
+
+model BillShare {
+  id           String      @id(map: "billShare_pkey")
+  amount       Int
+  billId       String
+  createdAt    Timestamptz @default(now())
+  daysOccupied Int         @default(30)
+  paymentId    String?
+  status       String      @default("PENDING")
+  tenantId     String
+  updatedAt    Timestamptz @default(now())
+  bill         UtilityBill @relation(fields: [billId], references: [id], onDelete: Cascade, map: "billShare_billId_fkey")
+  tenant       User        @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "billShare_tenantId_fkey")
+
+  @@unique([billId, tenantId], map: "billShare_billId_tenantId_key")
+  @@index([billId], name: "billShare_billId_idx")
+  @@index([tenantId], name: "billShare_tenantId_idx")
+  @@check(expression: "(status = ANY (ARRAY['PENDING'::text, 'PAID'::text]))", map: "billShare_status_check_50d0035a")
+  @@map("billShare")
+}
+
+model Dispute {
+  id           String       @id(map: "dispute_pkey")
+  category     String
+  createdAt    Timestamptz  @default(now())
+  description  String
+  raisedById   String
+  resolution   String?
+  resolvedAt   Timestamptz?
+  resolvedById String?
+  status       String       @default("OPEN")
+  targetId     String?
+  targetType   String?
+  updatedAt    Timestamptz  @default(now())
+  raisedBy     User         @relation(fields: [raisedById], references: [id], onDelete: Cascade, map: "dispute_raisedById_fkey")
+
+  @@index([raisedById], name: "dispute_raisedById_idx")
+  @@check(expression: "(category = ANY (ARRAY['RENT'::text, 'DEPOSIT'::text, 'BILL'::text, 'ROOMMATE'::text, 'OTHER'::text]))", map: "dispute_category_check_91a50e00")
+  @@check(expression: "(status = ANY (ARRAY['OPEN'::text, 'UNDER_REVIEW'::text, 'RESOLVED'::text, 'DISMISSED'::text]))", map: "dispute_status_check_0cd47f74")
+  @@map("dispute")
+}
+
+model Lease {
+  id                String           @id(map: "lease_pkey")
+  billingCycle      String           @default("MONTHLY")
+  billingDayOfMonth Int              @default(1)
+  createdAt         Timestamptz      @default(now())
+  deposit           Int
+  endDate           Timestamptz
+  propertyId        String
+  rent              Int
+  roomId            String
+  startDate         Timestamptz
+  status            String           @default("ACTIVE")
+  updatedAt         Timestamptz      @default(now())
+  leaseTenants      LeaseTenant[]
+  rentInvoices      RentInvoice[]
+  rentalDocuments   RentalDocument[]
+  property          Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade, map: "lease_propertyId_fkey")
+  room              Room             @relation(fields: [roomId], references: [id], onDelete: Cascade, map: "lease_roomId_fkey")
+
+  @@index([propertyId], name: "lease_propertyId_idx")
+  @@index([roomId], name: "lease_roomId_idx")
+  @@check(expression: "(\"billingCycle\" = ANY (ARRAY['MONTHLY'::text, 'WEEKLY'::text, 'BIWEEKLY'::text]))", map: "lease_billingCycle_check_212d9f6a")
+  @@check(expression: "(status = ANY (ARRAY['ACTIVE'::text, 'ENDED'::text, 'TERMINATED'::text]))", map: "lease_status_check_b7e86225")
+  @@map("lease")
+}
+
+model RentalDocument {
+  id                 String              @id(map: "rentalDocument_pkey")
+  createdAt          Timestamptz         @default(now())
+  fileUrl            String
+  leaseId            String
+  status             String              @default("DRAFT")
+  title              String
+  _type              String              @map("type")
+  updatedAt          Timestamptz         @default(now())
+  version            Int                 @default(1)
+  documentAuditLogs  DocumentAuditLog[]
+  documentSignatures DocumentSignature[]
+  lease              Lease               @relation(fields: [leaseId], references: [id], onDelete: Cascade, map: "rentalDocument_leaseId_fkey")
+
+  @@index([leaseId], name: "rentalDocument_leaseId_idx")
+  @@check(expression: "(status = ANY (ARRAY['DRAFT'::text, 'PENDING_SIGNATURE'::text, 'PARTIALLY_SIGNED'::text, 'EXECUTED'::text, 'EXPIRED'::text]))", map: "rentalDocument_status_check_cff2e3d2")
+  @@check(expression: "(type = ANY (ARRAY['LEASE_AGREEMENT'::text, 'ADDENDUM'::text, 'INSPECTION_REPORT'::text, 'OTHER'::text]))", map: "rentalDocument_type_check_185b3a4c")
+  @@map("rentalDocument")
+}
+
+model DocumentAuditLog {
+  id         String         @id(map: "documentAuditLog_pkey")
+  action     String
+  actorId    String
+  createdAt  Timestamptz    @default(now())
+  documentId String
+  ipAddress  String?
+  actor      User           @relation(fields: [actorId], references: [id], onDelete: Cascade, map: "documentAuditLog_actorId_fkey")
+  document   RentalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade, map: "documentAuditLog_documentId_fkey")
+
+  @@index([actorId], name: "documentAuditLog_actorId_idx")
+  @@index([documentId], name: "documentAuditLog_documentId_idx")
+  @@map("documentAuditLog")
+}
+
+model DocumentSignature {
+  id           String         @id(map: "documentSignature_pkey")
+  createdAt    Timestamptz    @default(now())
+  documentId   String
+  ipAddress    String?
+  signatureUrl String?
+  signedAt     Timestamptz?
+  signerId     String
+  status       String         @default("PENDING")
+  updatedAt    Timestamptz    @default(now())
+  document     RentalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade, map: "documentSignature_documentId_fkey")
+  signer       User           @relation(fields: [signerId], references: [id], onDelete: Cascade, map: "documentSignature_signerId_fkey")
+
+  @@index([documentId], name: "documentSignature_documentId_idx")
+  @@index([signerId], name: "documentSignature_signerId_idx")
+  @@check(expression: "(status = ANY (ARRAY['PENDING'::text, 'SIGNED'::text, 'DECLINED'::text]))", map: "documentSignature_status_check_1f857ff4")
+  @@map("documentSignature")
+}
+
+model LeaseTenant {
+  id        String       @id(map: "leaseTenant_pkey")
+  isPrimary Boolean      @default(false)
+  joinedAt  Timestamptz  @default(now())
+  leaseId   String
+  leftAt    Timestamptz?
+  tenantId  String
+  lease     Lease        @relation(fields: [leaseId], references: [id], onDelete: Cascade, map: "leaseTenant_leaseId_fkey")
+  tenant    User         @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "leaseTenant_tenantId_fkey")
+
+  @@unique([leaseId, tenantId], map: "leaseTenant_leaseId_tenantId_key")
+  @@index([leaseId], name: "leaseTenant_leaseId_idx")
+  @@index([tenantId], name: "leaseTenant_tenantId_idx")
+  @@map("leaseTenant")
+}
+
+model MaintenanceRequest {
+  id           String       @id(map: "maintenanceRequest_pkey")
+  assignedToId String?
+  category     String
+  createdAt    Timestamptz  @default(now())
+  description  String
+  feedback     String?
+  photos       String[]
+  rating       Int?
+  requesterId  String
+  resolvedAt   Timestamptz?
+  roomId       String
+  status       String       @default("OPEN")
+  updatedAt    Timestamptz  @default(now())
+  urgency      String       @default("MEDIUM")
+  requester    User         @relation(fields: [requesterId], references: [id], onDelete: Cascade, map: "maintenanceRequest_requesterId_fkey")
+  room         Room         @relation(fields: [roomId], references: [id], onDelete: Cascade, map: "maintenanceRequest_roomId_fkey")
+
+  @@index([requesterId], name: "maintenanceRequest_requesterId_idx")
+  @@index([roomId], name: "maintenanceRequest_roomId_idx")
+  @@check(expression: "(category = ANY (ARRAY['PLUMBING'::text, 'ELECTRICAL'::text, 'HVAC'::text, 'APPLIANCE'::text, 'STRUCTURAL'::text, 'OTHER'::text]))", map: "maintenanceRequest_category_check_e431dd84")
+  @@check(expression: "(status = ANY (ARRAY['OPEN'::text, 'ACKNOWLEDGED'::text, 'IN_PROGRESS'::text, 'RESOLVED'::text, 'CLOSED'::text]))", map: "maintenanceRequest_status_check_cc5bde75")
+  @@check(expression: "(urgency = ANY (ARRAY['LOW'::text, 'MEDIUM'::text, 'HIGH'::text, 'EMERGENCY'::text]))", map: "maintenanceRequest_urgency_check_4da39f14")
+  @@map("maintenanceRequest")
+}
+
+model Notification {
+  id        String      @id(map: "notification_pkey")
+  category  String
+  channel   String      @default("IN_APP")
+  createdAt Timestamptz @default(now())
+  data      String?
+  isRead    Boolean     @default(false)
+  message   String
+  title     String
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "notification_userId_fkey")
+
+  @@index([userId], name: "notification_userId_idx")
+  @@check(expression: "(category = ANY (ARRAY['APPLICATION'::text, 'VIEWING'::text, 'RENT'::text, 'BILL'::text, 'MAINTENANCE'::text, 'MATCH'::text, 'LEASE'::text, 'SYSTEM'::text]))", map: "notification_category_check_d4834058")
+  @@check(expression: "(channel = ANY (ARRAY['IN_APP'::text, 'EMAIL'::text, 'PUSH'::text, 'SMS'::text]))", map: "notification_channel_check_1b4c6cff")
+  @@map("notification")
+}
+
+model NotificationPreference {
+  id           String      @id(map: "notificationPreference_pkey")
+  createdAt    Timestamptz @default(now())
+  emailEnabled Boolean     @default(true)
+  inAppEnabled Boolean     @default(true)
+  preferences  String?
+  pushEnabled  Boolean     @default(true)
+  smsEnabled   Boolean     @default(false)
+  updatedAt    Timestamptz @default(now())
+  userId       String      @unique(map: "notificationPreference_userId_key")
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "notificationPreference_userId_fkey")
+
+  @@map("notificationPreference")
+}
+
+model Payment {
+  id                      String      @id(map: "payment_pkey")
+  amount                  Int
+  billShareId             String?
+  createdAt               Timestamptz @default(now())
+  currency                String      @default("usd")
+  idempotencyKey          String?     @unique(map: "payment_idempotencyKey_key")
+  invoiceId               String?
+  leaseId                 String?
+  metadata                String?
+  refundAmount            Int         @default(0)
+  status                  String      @default("PENDING")
+  stripeCheckoutSessionId String?
+  stripePaymentIntentId   String?     @unique(map: "payment_stripePaymentIntentId_key")
+  stripeTransferId        String?
+  _type                   String      @map("type")
+  updatedAt               Timestamptz @default(now())
+  userId                  String
+  user                    User        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "payment_userId_fkey")
+
+  @@index([userId], name: "payment_userId_idx")
+  @@check(expression: "(status = ANY (ARRAY['PENDING'::text, 'PROCESSING'::text, 'SUCCEEDED'::text, 'FAILED'::text, 'REFUNDED'::text]))", map: "payment_status_check_dbaf17ff")
+  @@check(expression: "(type = ANY (ARRAY['RENT'::text, 'BILL'::text, 'DEPOSIT'::text]))", map: "payment_type_check_c31e7368")
+  @@map("payment")
+}
+
+model PropertyManager {
+  id          String      @id(map: "propertyManager_pkey")
+  createdAt   Timestamptz @default(now())
+  permissions String[]
+  propertyId  String
+  userId      String
+  property    Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade, map: "propertyManager_propertyId_fkey")
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "propertyManager_userId_fkey")
+
+  @@unique([propertyId, userId], map: "propertyManager_propertyId_userId_key")
+  @@index([propertyId], name: "propertyManager_propertyId_idx")
+  @@index([userId], name: "propertyManager_userId_idx")
+  @@map("propertyManager")
+}
+
+model RentInvoice {
+  id              String      @id(map: "rentInvoice_pkey")
+  amount          Int
+  amountPaid      Int         @default(0)
+  createdAt       Timestamptz @default(now())
+  dueDate         Timestamptz
+  gracePeriodDays Int         @default(5)
+  lateFee         Int         @default(0)
+  leaseId         String
+  periodEnd       Timestamptz
+  periodStart     Timestamptz
+  status          String      @default("DUE")
+  updatedAt       Timestamptz @default(now())
+  lease           Lease       @relation(fields: [leaseId], references: [id], onDelete: Cascade, map: "rentInvoice_leaseId_fkey")
+
+  @@index([leaseId], name: "rentInvoice_leaseId_idx")
+  @@check(expression: "(status = ANY (ARRAY['DUE'::text, 'PAID'::text, 'PARTIALLY_PAID'::text, 'OVERDUE'::text, 'CANCELLED'::text]))", map: "rentInvoice_status_check_c05aa5f5")
+  @@map("rentInvoice")
+}
+
+model RoommateApproval {
+  id            String      @id(map: "roommateApproval_pkey")
+  applicationId String?
+  approverId    String
+  comments      String?
+  createdAt     Timestamptz @default(now())
+  roomId        String
+  status        String      @default("PENDING")
+  updatedAt     Timestamptz @default(now())
+  approver      User        @relation(fields: [approverId], references: [id], onDelete: Cascade, map: "roommateApproval_approverId_fkey")
+  room          Room        @relation(fields: [roomId], references: [id], onDelete: Cascade, map: "roommateApproval_roomId_fkey")
+
+  @@index([approverId], name: "roommateApproval_approverId_idx")
+  @@index([roomId], name: "roommateApproval_roomId_idx")
+  @@check(expression: "(status = ANY (ARRAY['PENDING'::text, 'APPROVED'::text, 'REJECTED'::text]))", map: "roommateApproval_status_check_56005a61")
+  @@map("roommateApproval")
+}
+
+model RoommateMatch {
+  id            String      @id(map: "roommateMatch_pkey")
+  breakdown     String?
+  createdAt     Timestamptz @default(now())
+  score         Int
+  status        String      @default("PENDING")
+  updatedAt     Timestamptz @default(now())
+  user1Id       String
+  user1Interest Boolean     @default(false)
+  user2Id       String
+  user2Interest Boolean     @default(false)
+  user1         User        @relation(name: "roommateMatch_user1Id_fkey", fields: [user1Id], references: [id], onDelete: Cascade, map: "roommateMatch_user1Id_fkey")
+  user2         User        @relation(name: "roommateMatch_user2Id_fkey", fields: [user2Id], references: [id], onDelete: Cascade, map: "roommateMatch_user2Id_fkey")
+
+  @@unique([user1Id, user2Id], map: "roommateMatch_user1Id_user2Id_key")
+  @@index([user1Id], name: "roommateMatch_user1Id_idx")
+  @@index([user2Id], name: "roommateMatch_user2Id_idx")
+  @@check(expression: "(status = ANY (ARRAY['PENDING'::text, 'MUTUAL_INTEREST'::text, 'DECLINED'::text]))", map: "roommateMatch_status_check_be304d40")
+  @@map("roommateMatch")
+}
+
+model RoommateProfile {
+  id            String       @id(map: "roommateProfile_pkey")
+  bio           String?
+  budgetMax     Int?
+  budgetMin     Int?
+  cleanliness   String?
+  createdAt     Timestamptz  @default(now())
+  lifestyleTags String[]
+  moveInDate    Timestamptz?
+  pets          Boolean      @default(false)
+  sleepSchedule String?
+  smoking       Boolean      @default(false)
+  updatedAt     Timestamptz  @default(now())
+  userId        String       @unique(map: "roommateProfile_userId_key")
+  workSchedule  String?
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade, map: "roommateProfile_userId_fkey")
+
+  @@check(expression: "(cleanliness = ANY (ARRAY['VERY_CLEAN'::text, 'MODERATE'::text, 'RELAXED'::text]))", map: "roommateProfile_cleanliness_check_b05bae6d")
+  @@check(expression: "(\"sleepSchedule\" = ANY (ARRAY['EARLY_BIRD'::text, 'NIGHT_OWL'::text, 'FLEXIBLE'::text]))", map: "roommateProfile_sleepSchedule_check_386b614a")
+  @@check(expression: "(\"workSchedule\" = ANY (ARRAY['REMOTE'::text, 'OFFICE'::text, 'HYBRID'::text, 'SHIFT'::text]))", map: "roommateProfile_workSchedule_check_7b051211")
+  @@map("roommateProfile")
+}
+
+model SavedSearch {
+  id         String       @id(map: "savedSearch_pkey")
+  amenities  String[]
+  createdAt  Timestamptz  @default(now())
+  location   String?
+  moveInDate Timestamptz?
+  name       String?
+  priceMax   Int?
+  priceMin   Int?
+  roomType   String?
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade, map: "savedSearch_userId_fkey")
+
+  @@index([userId], name: "savedSearch_userId_idx")
+  @@check(expression: "(\"roomType\" = ANY (ARRAY['PRIVATE'::text, 'SHARED'::text]))", map: "savedSearch_roomType_check_8f09ee46")
+  @@map("savedSearch")
+}
+
+model StripeWebhookEvent {
+  id            String      @id(map: "stripeWebhookEvent_pkey")
+  eventType     String
+  payload       String
+  processedAt   Timestamptz @default(now())
+  stripeEventId String      @unique(map: "stripeWebhookEvent_stripeEventId_key")
+
+  @@map("stripeWebhookEvent")
+}
+
+model Verification {
+  id          String      @id(map: "verification_pkey")
+  createdAt   Timestamptz @default(now())
+  data        String?
+  documentUrl String?
+  notes       String?
+  reviewerId  String?
+  status      String      @default("PENDING")
+  _type       String      @map("type")
+  updatedAt   Timestamptz @default(now())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "verification_userId_fkey")
+
+  @@index([userId], name: "verification_userId_idx")
+  @@check(expression: "(status = ANY (ARRAY['PENDING'::text, 'IN_REVIEW'::text, 'VERIFIED'::text, 'REJECTED'::text]))", map: "verification_status_check_7362ec11")
+  @@check(expression: "(type = ANY (ARRAY['IDENTITY'::text, 'INCOME'::text, 'EMPLOYMENT'::text, 'REFERENCE_CHECK'::text]))", map: "verification_type_check_2383abb9")
+  @@map("verification")
+}
+
+model ViewingRequest {
+  id            String       @id(map: "viewingRequest_pkey")
+  alternateDate Timestamptz?
+  createdAt     Timestamptz  @default(now())
+  notes         String?
+  preferredDate Timestamptz
+  roomId        String
+  status        String       @default("REQUESTED")
+  tenantId      String
+  _type         String       @default("IN_PERSON") @map("type")
+  updatedAt     Timestamptz  @default(now())
+  room          Room         @relation(fields: [roomId], references: [id], onDelete: Cascade, map: "viewingRequest_roomId_fkey")
+  tenant        User         @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "viewingRequest_tenantId_fkey")
+
+  @@index([roomId], name: "viewingRequest_roomId_idx")
+  @@index([tenantId], name: "viewingRequest_tenantId_idx")
+  @@check(expression: "(status = ANY (ARRAY['REQUESTED'::text, 'CONFIRMED'::text, 'ALTERNATE_PROPOSED'::text, 'DECLINED'::text, 'COMPLETED'::text, 'CANCELLED'::text, 'NO_SHOW'::text]))", map: "viewingRequest_status_check_ba1fa1b3")
+  @@check(expression: "(type = ANY (ARRAY['IN_PERSON'::text, 'VIRTUAL'::text]))", map: "viewingRequest_type_check_004541db")
+  @@map("viewingRequest")
+}

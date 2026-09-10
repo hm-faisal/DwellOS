@@ -1,26 +1,28 @@
 {
-	"compilerOptions": {
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["src/*"]
-		},
-		"allowImportingTsExtensions": true,
-		"noEmit": true,
-		"target": "ES2022",
-		"module": "preserve",
-		"moduleResolution": "bundler",
-		"resolveJsonModule": true,
-		"verbatimModuleSyntax": true,
-		"strict": true,
-		"esModuleInterop": true,
-		"skipLibCheck": true,
-		"forceConsistentCasingInFileNames": true,
-		"types": [
-			"node"
-		]
-	},
-	"include": [
-		"src/**/*.ts",
-		"prisma.config.ts"
-	]
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "target": "ES2022",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "prisma/**/*.ts",
+    "prisma.config.ts"
+  ]
 }

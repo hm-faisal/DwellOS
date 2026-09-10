@@ -1,63 +1,75 @@
-import type { NextFunction, Request, Response } from 'express';
-import {
-	registerUserService,
-	sendOtpService,
-	verifyOtpService,
-} from './auth.services.ts';
+import type { Request, Response } from 'express';
+import httpStatus from 'http-status';
+import UnauthorizedError from '@/errors/unauthorized.error.ts';
+import { catchAsync } from '../../utils/catchAsync.ts';
+import { sendResponse } from '../../utils/sendResponse.ts';
+import { authService } from './auth.services.ts';
 
-export const sendOtp = async (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-) => {
-	try {
-		const result = await sendOtpService(req.body.email);
-		res.status(200).json({
-			success: true,
-			message: 'Verification code sent successfully',
-			data: result,
-		});
-	} catch (error) {
-		next(error);
+const register = catchAsync(async (req: Request, res: Response) => {
+	const payload = req.body;
+	const result = await authService.register(payload);
+	sendResponse(res, {
+		statusCode: httpStatus.CREATED,
+		success: true,
+		message: 'User registered successfully',
+		data: result,
+	});
+});
+
+const login = catchAsync(async (req: Request, res: Response) => {
+	const payload = req.body;
+	const result = await authService.login(payload);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: 'User logged in successfully',
+		data: result,
+	});
+});
+
+const refresh = catchAsync(async (req: Request, res: Response) => {
+	const payload = req.body;
+	const result = await authService.refreshTokens(payload);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: 'Tokens refreshed successfully',
+		data: result,
+	});
+});
+
+const logout = catchAsync(async (req: Request, res: Response) => {
+	const user = req.user;
+	if (!user) {
+		throw new UnauthorizedError('Something went wrong');
 	}
-};
+	const result = await authService.logout(user.id);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: 'User logged out successfully',
+		data: result,
+	});
+});
 
-export const verifyOtp = async (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-) => {
-	try {
-		const result = await verifyOtpService(req.body.email, req.body.otp);
-		res.status(200).json({
-			success: true,
-			message: 'Verification code confirmed successfully',
-			data: result,
-		});
-	} catch (error) {
-		next(error);
+const me = catchAsync(async (req: Request, res: Response) => {
+	const user = req.user;
+	if (!user) {
+		throw new UnauthorizedError('Unauthorized request! Invalid user');
 	}
-};
+	const result = await authService.getCurrentUser(user.id);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: 'Current user profile retrieved successfully',
+		data: result,
+	});
+});
 
-export const register = async (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-) => {
-	try {
-		const user = await registerUserService(req.body);
-		res.status(201).json({
-			success: true,
-			message: 'User registered successfully',
-			data: user,
-		});
-	} catch (error) {
-		next(error);
-	}
-};
-
-export default {
-	sendOtp,
-	verifyOtp,
+export const AuthController = {
 	register,
+	login,
+	refresh,
+	logout,
+	me,
 };

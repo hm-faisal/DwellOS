@@ -1,79 +1,228 @@
-import crypto from 'node:crypto';
-import { BadRequestError } from '@/errors/badRequest.error.ts';
-import { db } from '@/libs/db.ts';
-import { sendEmail } from '@/libs/nodemailer.ts';
-import { redisService } from '@/libs/redis.ts';
+import bcrypt from 'bcryptjs';
+import {
+	generateAccessToken,
+	generateRefreshToken,
+	type TokenPayload,
+	verifyRefreshToken,
+} from '../../lib/auth-middleware.ts';
+import {
+	ConflictError,
+	ForbiddenError,
+	NotFoundError,
+	UnauthorizedError,
+} from '../../lib/errors.ts';
+import { nowInstant, prisma } from '../../lib/prisma.ts';
+import { getOrCreateStripeCustomer } from '../../lib/stripe-client.ts';
+import { getRedisClient } from '../../libs/redis.ts';
+import type {
+	LoginInput,
+	RefreshTokenInput,
+	RegisterInput,
+} from './auth.schemas.ts';
 
-export const sendOtpService = async (email: string) => {
-	// Generate 6-digit cryptographic OTP
-	const otp = crypto.randomInt(100000, 999999).toString();
+export class AuthService {
+	async register(input: RegisterInput) {
+		const existing = await prisma.User.first({ email: input.email });
+		if (existing) {
+			throw new ConflictError('User with this email already exists');
+		}
 
-	// Store OTP in Redis with 5 minutes (300 seconds) expiration
-	const cacheKey = `otp:${email.toLowerCase()}`;
-	await redisService.setEx(cacheKey, 300, otp);
+		const hashedPassword = await bcrypt.hash(input.password, 10);
+		const userId = crypto.randomUUID();
 
-	// Send OTP via Nodemailer
-	await sendEmail({
-		to: email,
-		subject: 'Your DwellOS Verification Code',
-		html: `
-			<div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-				<h2>DwellOS Verification Code</h2>
-				<p>Your one-time verification code is:</p>
-				<div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2563eb; margin: 20px 0;">
-					${otp}
-				</div>
-				<p>This code will expire in 5 minutes. If you did not request this, please ignore this email.</p>
-			</div>
-		`,
-		text: `Your DwellOS verification code is ${otp}. It expires in 5 minutes.`,
-	});
+		// Create user in database
+		const user = await prisma.User.create({
+			id: userId,
+			email: input.email,
+			password: hashedPassword,
+			name: input.name,
+			phone: input.phone || null,
+			role: input.role,
+			status: 'ACTIVE',
+			stripeCustomerId: null,
+			stripeAccountId: null,
+			createdAt: nowInstant(),
+			updatedAt: nowInstant(),
+		});
 
-	return { email, expiresInSeconds: 300 };
-};
+		// Create stripe customer for tenant if applicable
+		if (user.role === 'TENANT') {
+			try {
+				const stripeCustomerId = await getOrCreateStripeCustomer({
+					id: user.id,
+					email: user.email,
+					name: user.name,
+				});
+				await prisma.User.where({ id: user.id }).update({ stripeCustomerId });
+			} catch (err) {
+				console.warn(
+					'[AuthService] Could not create Stripe customer on register:',
+					err,
+				);
+			}
+		}
 
-export const verifyOtpService = async (email: string, otp: string) => {
-	const cacheKey = `otp:${email.toLowerCase()}`;
-	const storedOtp = await redisService.get<string>(cacheKey);
+		const tokenPayload: TokenPayload = {
+			id: user.id,
+			email: user.email,
+			role: user.role as any,
+			status: user.status as any,
+		};
 
-	if (!storedOtp) {
-		throw new BadRequestError('Verification code has expired or is invalid.');
+		const accessToken = generateAccessToken(tokenPayload);
+		const refreshToken = generateRefreshToken(tokenPayload);
+
+		// Store refresh token in Redis
+		try {
+			const redis = getRedisClient();
+			await redis.set(
+				`dwellos:refresh:${user.id}`,
+				refreshToken,
+				'EX',
+				30 * 24 * 60 * 60,
+			);
+		} catch {
+			// Redis optional fallback
+		}
+
+		return {
+			user: {
+				id: user.id,
+				email: user.email,
+				name: user.name,
+				phone: user.phone,
+				role: user.role,
+				status: user.status,
+			},
+			tokens: {
+				accessToken,
+				refreshToken,
+			},
+		};
 	}
 
-	if (storedOtp !== otp) {
-		throw new BadRequestError('Incorrect verification code.');
+	async login(input: LoginInput) {
+		const user = await prisma.User.first({ email: input.email });
+		if (!user) {
+			throw new UnauthorizedError('Invalid email or password');
+		}
+
+		if (user.status === 'SUSPENDED' || user.status === 'BANNED') {
+			throw new ForbiddenError(`Account is ${user.status.toLowerCase()}`);
+		}
+
+		const isPasswordValid = await bcrypt.compare(input.password, user.password);
+		if (!isPasswordValid) {
+			throw new UnauthorizedError('Invalid email or password');
+		}
+
+		const tokenPayload: TokenPayload = {
+			id: user.id,
+			email: user.email,
+			role: user.role as any,
+			status: user.status as any,
+		};
+
+		const accessToken = generateAccessToken(tokenPayload);
+		const refreshToken = generateRefreshToken(tokenPayload);
+
+		try {
+			const redis = getRedisClient();
+			await redis.set(
+				`dwellos:refresh:${user.id}`,
+				refreshToken,
+				'EX',
+				30 * 24 * 60 * 60,
+			);
+		} catch {
+			// fallback
+		}
+
+		return {
+			user: {
+				id: user.id,
+				email: user.email,
+				name: user.name,
+				phone: user.phone,
+				role: user.role,
+				status: user.status,
+			},
+			tokens: {
+				accessToken,
+				refreshToken,
+			},
+		};
 	}
 
-	// Delete used OTP
-	await redisService.del(cacheKey);
+	async refreshTokens(input: RefreshTokenInput) {
+		const decoded = verifyRefreshToken(input.refreshToken);
+		const user = await prisma.User.first({ id: decoded.id });
 
-	return { verified: true, email };
-};
+		if (!user) {
+			throw new UnauthorizedError('User does not exist');
+		}
 
-export const registerUserService = async (data: {
-	email: string;
-	name?: string;
-	username?: string;
-}) => {
-	const user = await db.orm.public.User.upsert({
-		create: {
-			email: data.email,
-			username: data.username,
-			name: data.name,
-		},
-		update: {
-			username: data.username,
-			name: data.name,
-		},
-		conflictOn: { email: data.email },
-	});
+		if (user.status === 'SUSPENDED' || user.status === 'BANNED') {
+			throw new ForbiddenError(`Account is ${user.status.toLowerCase()}`);
+		}
 
-	await redisService.del('users:list');
-	return user;
-};
+		const tokenPayload: TokenPayload = {
+			id: user.id,
+			email: user.email,
+			role: user.role as any,
+			status: user.status as any,
+		};
 
-export default {
-	sendOtpService,
-	verifyOtpService,
-	registerUserService,
-};
+		const newAccessToken = generateAccessToken(tokenPayload);
+		const newRefreshToken = generateRefreshToken(tokenPayload);
+
+		try {
+			const redis = getRedisClient();
+			await redis.set(
+				`dwellos:refresh:${user.id}`,
+				newRefreshToken,
+				'EX',
+				30 * 24 * 60 * 60,
+			);
+		} catch {
+			// fallback
+		}
+
+		return {
+			accessToken: newAccessToken,
+			refreshToken: newRefreshToken,
+		};
+	}
+
+	async logout(userId: string) {
+		try {
+			const redis = getRedisClient();
+			await redis.del(`dwellos:refresh:${userId}`);
+		} catch {
+			// fallback
+		}
+		return { success: true };
+	}
+
+	async getCurrentUser(userId: string) {
+		const user = await prisma.User.first({ id: userId });
+		if (!user) {
+			throw new NotFoundError('User not found');
+		}
+
+		return {
+			id: user.id,
+			email: user.email,
+			name: user.name,
+			phone: user.phone,
+			role: user.role,
+			status: user.status,
+			stripeCustomerId: user.stripeCustomerId,
+			stripeAccountId: user.stripeAccountId,
+			createdAt: user.createdAt,
+			updatedAt: user.updatedAt,
+		};
+	}
+}
+
+export const authService = new AuthService();
