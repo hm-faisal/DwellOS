@@ -8,7 +8,11 @@ const createBill = catchAsync(async (req: Request, res: Response) => {
 	const propertyId = req.params.id as string;
 	const payload = req.body;
 	const user = req.user!;
-	const result = await utilityBillService.createBill(propertyId, payload, user.id);
+	const result = await utilityBillService.createBill(
+		propertyId,
+		payload,
+		user.id,
+	);
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
 		success: true,
@@ -20,7 +24,10 @@ const createBill = catchAsync(async (req: Request, res: Response) => {
 const listPropertyBills = catchAsync(async (req: Request, res: Response) => {
 	const propertyId = req.params.id as string;
 	const query = req.query;
-	const result = await utilityBillService.listBillsByProperty(propertyId, query as any);
+	const result = await utilityBillService.listBillsByProperty(
+		propertyId,
+		query as any,
+	);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
@@ -60,11 +67,11 @@ export const UtilityBillController = {
 
 export {
 	createBill,
-	listPropertyBills,
-	getBill,
-	getBillShares,
 	createBill as createBillHandler,
-	listPropertyBills as listPropertyBillsHandler,
+	getBill,
 	getBill as getBillHandler,
+	getBillShares,
 	getBillShares as getBillSharesHandler,
+	listPropertyBills,
+	listPropertyBills as listPropertyBillsHandler,
 };

@@ -15,9 +15,15 @@ export const nowInstant = (): Temporal.Instant => {
  * Converts a Date, ISO string, epoch millisecond timestamp, or Temporal.Instant
  * into a valid Temporal.Instant for Prisma 8 queries and mutations.
  */
-export const toInstant = (
+export function toInstant(
+	value: Date | number | string | Temporal.Instant,
+): Temporal.Instant;
+export function toInstant(
 	value?: Date | string | number | Temporal.Instant | null,
-): Temporal.Instant | undefined => {
+): Temporal.Instant | undefined;
+export function toInstant(
+	value?: Date | string | number | Temporal.Instant | null,
+): Temporal.Instant | undefined {
 	if (!value) return undefined;
 	if (value instanceof Temporal.Instant) return value;
 	if (value instanceof Date) {
@@ -30,4 +36,4 @@ export const toInstant = (
 		return Temporal.Instant.from(value);
 	}
 	return undefined;
-};
+}

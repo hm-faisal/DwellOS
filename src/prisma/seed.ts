@@ -99,8 +99,15 @@ async function seed() {
 			country: 'USA',
 			latitude: 30.2672,
 			longitude: -97.7431,
-			description: 'Luxury co-living space in downtown Austin with fiber internet, pool, and gym.',
-			amenities: ['FIBER_INTERNET', 'POOL', 'GYM', 'IN_UNIT_LAUNDRY', 'CENTRAL_AC'],
+			description:
+				'Luxury co-living space in downtown Austin with fiber internet, pool, and gym.',
+			amenities: [
+				'FIBER_INTERNET',
+				'POOL',
+				'GYM',
+				'IN_UNIT_LAUNDRY',
+				'CENTRAL_AC',
+			],
 			photos: ['https://images.unsplash.com/photo-1545324418-cc1a3fa10c00'],
 			status: 'ACTIVE',
 			stripeAccountId: 'acct_mock_owner_123',
@@ -112,13 +119,21 @@ async function seed() {
 	console.log('✓ Seeded Property');
 
 	// 3. PropertyManager delegation
-	const managerRecord = await prisma.PropertyManager.first({ propertyId, userId: managerId });
+	const managerRecord = await prisma.PropertyManager.first({
+		propertyId,
+		userId: managerId,
+	});
 	if (!managerRecord) {
 		await prisma.PropertyManager.create({
 			id: crypto.randomUUID(),
 			propertyId,
 			userId: managerId,
-			permissions: ['MANAGE_ROOMS', 'MANAGE_APPLICATIONS', 'MANAGE_MAINTENANCE', 'VIEW_FINANCIALS'],
+			permissions: [
+				'MANAGE_ROOMS',
+				'MANAGE_APPLICATIONS',
+				'MANAGE_MAINTENANCE',
+				'VIEW_FINANCIALS',
+			],
 			createdAt: new Date(),
 		});
 	}
@@ -220,14 +235,23 @@ async function seed() {
 	console.log('✓ Seeded Roommate Profiles');
 
 	// 6. Roommate Match
-	const match = await prisma.RoommateMatch.first({ user1Id: tenant1Id, user2Id: tenant2Id });
+	const match = await prisma.RoommateMatch.first({
+		user1Id: tenant1Id,
+		user2Id: tenant2Id,
+	});
 	if (!match) {
 		await prisma.RoommateMatch.create({
 			id: crypto.randomUUID(),
 			user1Id: tenant1Id,
 			user2Id: tenant2Id,
 			score: 95,
-			breakdown: JSON.stringify({ budget: 30, cleanliness: 25, sleep: 15, work: 10, habits: 15 }),
+			breakdown: JSON.stringify({
+				budget: 30,
+				cleanliness: 25,
+				sleep: 15,
+				work: 10,
+				habits: 15,
+			}),
 			user1Interest: true,
 			user2Interest: true,
 			status: 'MUTUAL_INTEREST',
@@ -238,7 +262,10 @@ async function seed() {
 	console.log('✓ Seeded Roommate Match with Mutual Interest');
 
 	// 7. Viewing Request
-	const viewing = await prisma.ViewingRequest.first({ roomId: room1Id, tenantId: tenant1Id });
+	const viewing = await prisma.ViewingRequest.first({
+		roomId: room1Id,
+		tenantId: tenant1Id,
+	});
 	if (!viewing) {
 		await prisma.ViewingRequest.create({
 			id: crypto.randomUUID(),
@@ -264,9 +291,17 @@ async function seed() {
 			roomId: room1Id,
 			tenantId: tenant1Id,
 			moveInDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-			personalInfo: JSON.stringify({ emergencyContact: 'Jane Tenant (+15559990001)' }),
-			employment: JSON.stringify({ employer: 'Tech Corp', income: 12000000, title: 'Senior Engineer' }),
-			references: JSON.stringify({ previousLandlord: 'Bob Miller (+15558887777)' }),
+			personalInfo: JSON.stringify({
+				emergencyContact: 'Jane Tenant (+15559990001)',
+			}),
+			employment: JSON.stringify({
+				employer: 'Tech Corp',
+				income: 12000000,
+				title: 'Senior Engineer',
+			}),
+			references: JSON.stringify({
+				previousLandlord: 'Bob Miller (+15558887777)',
+			}),
 			status: 'APPROVED',
 			holdExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
 			notes: 'Strong credit and references verified.',
@@ -387,7 +422,11 @@ async function seed() {
 			id: crypto.randomUUID(),
 			stripeEventId: 'evt_seed_payment_intent_succeeded_101',
 			eventType: 'payment_intent.succeeded',
-			payload: JSON.stringify({ id: 'pi_seed_rent_success_101', amount: 140000, status: 'succeeded' }),
+			payload: JSON.stringify({
+				id: 'pi_seed_rent_success_101',
+				amount: 140000,
+				status: 'succeeded',
+			}),
 			processedAt: new Date(),
 		});
 	}
@@ -427,7 +466,9 @@ async function seed() {
 	console.log('✓ Seeded Utility Bill & Shares');
 
 	// 13. Maintenance Request
-	const maintenance = await prisma.MaintenanceRequest.first({ roomId: room1Id });
+	const maintenance = await prisma.MaintenanceRequest.first({
+		roomId: room1Id,
+	});
 	if (!maintenance) {
 		await prisma.MaintenanceRequest.create({
 			id: crypto.randomUUID(),

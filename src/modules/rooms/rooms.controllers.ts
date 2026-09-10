@@ -20,7 +20,10 @@ const createRoom = catchAsync(async (req: Request, res: Response) => {
 const listPropertyRooms = catchAsync(async (req: Request, res: Response) => {
 	const propertyId = req.params.id as string;
 	const query = req.query;
-	const result = await roomService.listRoomsByProperty(propertyId, query as any);
+	const result = await roomService.listRoomsByProperty(
+		propertyId,
+		query as any,
+	);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
@@ -75,13 +78,13 @@ export const RoomController = {
 
 export {
 	createRoom,
-	listPropertyRooms,
-	getRoom,
-	updateRoom,
-	deleteRoom,
 	createRoom as createRoomHandler,
-	listPropertyRooms as listPropertyRoomsHandler,
-	getRoom as getRoomHandler,
-	updateRoom as updateRoomHandler,
+	deleteRoom,
 	deleteRoom as deleteRoomHandler,
+	getRoom,
+	getRoom as getRoomHandler,
+	listPropertyRooms,
+	listPropertyRooms as listPropertyRoomsHandler,
+	updateRoom,
+	updateRoom as updateRoomHandler,
 };

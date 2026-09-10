@@ -17,14 +17,30 @@ export async function generateRentInvoicesJob(): Promise<void> {
 			// Calculate current period start & end based on billingDayOfMonth
 			const currentYear = jsNow.getFullYear();
 			const currentMonth = jsNow.getMonth();
-			const periodStartDate = new Date(currentYear, currentMonth, lease.billingDayOfMonth || 1);
-			const periodEndDate = new Date(currentYear, currentMonth + 1, (lease.billingDayOfMonth || 1) - 1, 23, 59, 59);
+			const periodStartDate = new Date(
+				currentYear,
+				currentMonth,
+				lease.billingDayOfMonth || 1,
+			);
+			const periodEndDate = new Date(
+				currentYear,
+				currentMonth + 1,
+				(lease.billingDayOfMonth || 1) - 1,
+				23,
+				59,
+				59,
+			);
 
 			// Check if invoice already exists for this lease and period
-			const existingInvoices = await txPrisma.RentInvoice.where({ leaseId: lease.id }).all();
+			const existingInvoices = await txPrisma.RentInvoice.where({
+				leaseId: lease.id,
+			}).all();
 			const alreadyBilled = existingInvoices.some((inv: any) => {
 				const start = new Date(inv.periodStart);
-				return start.getFullYear() === currentYear && start.getMonth() === currentMonth;
+				return (
+					start.getFullYear() === currentYear &&
+					start.getMonth() === currentMonth
+				);
 			});
 
 			if (alreadyBilled) {
@@ -36,9 +52,9 @@ export async function generateRentInvoicesJob(): Promise<void> {
 			const invoice = await txPrisma.RentInvoice.create({
 				id: invoiceId,
 				leaseId: lease.id,
-				periodStart: toInstant(periodStartDate)!,
-				periodEnd: toInstant(periodEndDate)!,
-				dueDate: toInstant(periodStartDate)!,
+				periodStart: toInstant(periodStartDate),
+				periodEnd: toInstant(periodEndDate),
+				dueDate: toInstant(periodStartDate),
 				amount: lease.rent,
 				amountPaid: 0,
 				lateFee: 0,
@@ -57,7 +73,9 @@ export async function generateRentInvoicesJob(): Promise<void> {
 			});
 
 			// Notify all tenants on this lease
-			const leaseTenants = await txPrisma.LeaseTenant.where({ leaseId: lease.id }).all();
+			const leaseTenants = await txPrisma.LeaseTenant.where({
+				leaseId: lease.id,
+			}).all();
 			for (const lt of leaseTenants) {
 				await txPrisma.Notification.create({
 					id: crypto.randomUUID(),

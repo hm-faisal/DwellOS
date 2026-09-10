@@ -1,6 +1,14 @@
 import { ConflictError, NotFoundError } from '../../lib/errors.ts';
-import { nowInstant, paginateResults, prisma, recordAuditLog } from '../../lib/prisma.ts';
-import type { CreatePropertyInput, UpdatePropertyInput } from './properties.schemas.ts';
+import {
+	nowInstant,
+	paginateResults,
+	prisma,
+	recordAuditLog,
+} from '../../lib/prisma.ts';
+import type {
+	CreatePropertyInput,
+	UpdatePropertyInput,
+} from './properties.schemas.ts';
 
 export class PropertyService {
 	async createProperty(ownerId: string, input: CreatePropertyInput) {
@@ -38,7 +46,15 @@ export class PropertyService {
 		return property;
 	}
 
-	async listProperties(query: { cursor?: string; limit?: number; city?: string; ownerOnly?: string }, userId?: string) {
+	async listProperties(
+		query: {
+			cursor?: string;
+			limit?: number;
+			city?: string;
+			ownerOnly?: string;
+		},
+		userId?: string,
+	) {
 		const limit = query.limit || 20;
 		let q = prisma.Property;
 
@@ -72,7 +88,9 @@ export class PropertyService {
 
 		// Include rooms and managers
 		const rooms = await prisma.Room.where({ propertyId: id }).all();
-		const managers = await prisma.PropertyManager.where({ propertyId: id }).all();
+		const managers = await prisma.PropertyManager.where({
+			propertyId: id,
+		}).all();
 
 		return {
 			...property,
@@ -81,7 +99,11 @@ export class PropertyService {
 		};
 	}
 
-	async updateProperty(id: string, input: UpdatePropertyInput, actorId: string) {
+	async updateProperty(
+		id: string,
+		input: UpdatePropertyInput,
+		actorId: string,
+	) {
 		const property = await prisma.Property.first({ id });
 		if (!property) {
 			throw new NotFoundError('Property not found');
@@ -95,9 +117,14 @@ export class PropertyService {
 			state: input.state !== undefined ? input.state : property.state,
 			zipCode: input.zipCode !== undefined ? input.zipCode : property.zipCode,
 			country: input.country !== undefined ? input.country : property.country,
-			latitude: input.latitude !== undefined ? input.latitude : property.latitude,
-			longitude: input.longitude !== undefined ? input.longitude : property.longitude,
-			description: input.description !== undefined ? input.description : property.description,
+			latitude:
+				input.latitude !== undefined ? input.latitude : property.latitude,
+			longitude:
+				input.longitude !== undefined ? input.longitude : property.longitude,
+			description:
+				input.description !== undefined
+					? input.description
+					: property.description,
 			amenities: input.amenities ?? property.amenities,
 			photos: input.photos ?? property.photos,
 			status: input.status ?? property.status,
@@ -127,7 +154,7 @@ export class PropertyService {
 			throw new NotFoundError('Property not found');
 		}
 
-		const updated = await prisma.Property.where({ id }).update({
+		await prisma.Property.where({ id }).update({
 			status: 'ARCHIVED',
 			updatedAt: nowInstant(),
 		});
@@ -144,7 +171,12 @@ export class PropertyService {
 		return { success: true, message: 'Property archived' };
 	}
 
-	async addManager(propertyId: string, userId: string, permissions: string[], actorId: string) {
+	async addManager(
+		propertyId: string,
+		userId: string,
+		permissions: string[],
+		actorId: string,
+	) {
 		const property = await prisma.Property.first({ id: propertyId });
 		if (!property) {
 			throw new NotFoundError('Property not found');
@@ -157,7 +189,9 @@ export class PropertyService {
 
 		const existing = await prisma.PropertyManager.first({ propertyId, userId });
 		if (existing) {
-			throw new ConflictError('User is already assigned as a manager for this property');
+			throw new ConflictError(
+				'User is already assigned as a manager for this property',
+			);
 		}
 
 		const manager = await prisma.PropertyManager.create({

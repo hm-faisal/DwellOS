@@ -2,7 +2,10 @@ import { NotFoundError } from '../../lib/errors.ts';
 import { paginateResults, prisma } from '../../lib/prisma.ts';
 
 export class RentService {
-	async getInvoicesByLease(leaseId: string, query?: { cursor?: string; limit?: number; status?: string }) {
+	async getInvoicesByLease(
+		leaseId: string,
+		query?: { cursor?: string; limit?: number; status?: string },
+	) {
 		const limit = query?.limit || 20;
 		let q = prisma.RentInvoice.where({ leaseId });
 

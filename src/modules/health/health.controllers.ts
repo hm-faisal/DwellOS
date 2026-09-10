@@ -6,7 +6,8 @@ import { getHealthStatus } from './health.services.ts';
 
 const healthCheck = catchAsync(async (_req: Request, res: Response) => {
 	const health = await getHealthStatus();
-	const statusCode = health.status === 'error' ? httpStatus.SERVICE_UNAVAILABLE : httpStatus.OK;
+	const statusCode =
+		health.status === 'error' ? httpStatus.SERVICE_UNAVAILABLE : httpStatus.OK;
 
 	sendResponse(res, {
 		statusCode,
@@ -20,9 +21,6 @@ export const HealthController = {
 	healthCheck,
 };
 
-export {
-	healthCheck,
-	healthCheck as healthCheckHandler,
-};
+export { healthCheck, healthCheck as healthCheckHandler };
 
 export default HealthController;

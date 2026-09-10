@@ -20,7 +20,9 @@ export class PaymentService {
 
 		const customerId = await getOrCreateStripeCustomer(user);
 		if (!user.stripeCustomerId) {
-			await prisma.User.where({ id: userId }).update({ stripeCustomerId: customerId });
+			await prisma.User.where({ id: userId }).update({
+				stripeCustomerId: customerId,
+			});
 		}
 
 		return await createSetupIntent(customerId);
@@ -35,7 +37,8 @@ export class PaymentService {
 		}
 
 		// Check idempotency
-		const idempotencyKey = input.idempotencyKey || `rent_${invoice.id}_${userId}`;
+		const idempotencyKey =
+			input.idempotencyKey || `rent_${invoice.id}_${userId}`;
 		const existingPayment = await prisma.Payment.first({ idempotencyKey });
 		if (existingPayment && existingPayment.status === 'SUCCEEDED') {
 			return existingPayment;
@@ -46,9 +49,12 @@ export class PaymentService {
 
 		const customerId = await getOrCreateStripeCustomer(user);
 		const lease = await prisma.Lease.first({ id: invoice.leaseId });
-		const property = lease ? await prisma.Property.first({ id: lease.propertyId }) : null;
+		const property = lease
+			? await prisma.Property.first({ id: lease.propertyId })
+			: null;
 
-		const remainingAmount = invoice.amount + invoice.lateFee - invoice.amountPaid;
+		const remainingAmount =
+			invoice.amount + invoice.lateFee - invoice.amountPaid;
 		if (remainingAmount <= 0) {
 			throw new BusinessRuleError('No balance due on this invoice');
 		}
@@ -75,7 +81,7 @@ export class PaymentService {
 					stripePaymentIntentId: pi.id,
 					status: 'PROCESSING',
 					updatedAt: new Date(),
-			  })
+				})
 			: await prisma.Payment.create({
 					id: paymentId,
 					userId,
@@ -94,14 +100,18 @@ export class PaymentService {
 					metadata: JSON.stringify({ clientSecret: pi.clientSecret }),
 					createdAt: new Date(),
 					updatedAt: new Date(),
-			  });
+				});
 
 		await recordAuditLog(prisma, {
 			actorId: userId,
 			entityType: 'Payment',
 			entityId: payment.id,
 			action: 'PAYMENT_INITIATED',
-			afterState: { id: payment.id, amount: payment.amount, status: payment.status },
+			afterState: {
+				id: payment.id,
+				amount: payment.amount,
+				status: payment.status,
+			},
 		});
 
 		return {
@@ -129,7 +139,9 @@ export class PaymentService {
 
 		const customerId = await getOrCreateStripeCustomer(user);
 		const bill = await prisma.UtilityBill.first({ id: share.billId });
-		const property = bill ? await prisma.Property.first({ id: bill.propertyId }) : null;
+		const property = bill
+			? await prisma.Property.first({ id: bill.propertyId })
+			: null;
 
 		const pi = await createPaymentIntent({
 			amount: share.amount,
@@ -152,7 +164,7 @@ export class PaymentService {
 					stripePaymentIntentId: pi.id,
 					status: 'PROCESSING',
 					updatedAt: new Date(),
-			  })
+				})
 			: await prisma.Payment.create({
 					id: paymentId,
 					userId,
@@ -171,14 +183,18 @@ export class PaymentService {
 					metadata: JSON.stringify({ clientSecret: pi.clientSecret }),
 					createdAt: new Date(),
 					updatedAt: new Date(),
-			  });
+				});
 
 		await recordAuditLog(prisma, {
 			actorId: userId,
 			entityType: 'Payment',
 			entityId: payment.id,
 			action: 'PAYMENT_INITIATED',
-			afterState: { id: payment.id, amount: payment.amount, status: payment.status },
+			afterState: {
+				id: payment.id,
+				amount: payment.amount,
+				status: payment.status,
+			},
 		});
 
 		return {
@@ -192,7 +208,8 @@ export class PaymentService {
 		if (!lease) throw new NotFoundError('Lease not found');
 
 		const amount = input.amount ?? lease.deposit;
-		const idempotencyKey = input.idempotencyKey || `deposit_${lease.id}_${userId}`;
+		const idempotencyKey =
+			input.idempotencyKey || `deposit_${lease.id}_${userId}`;
 
 		const existingPayment = await prisma.Payment.first({ idempotencyKey });
 		if (existingPayment && existingPayment.status === 'SUCCEEDED') {
@@ -225,7 +242,7 @@ export class PaymentService {
 					stripePaymentIntentId: pi.id,
 					status: 'PROCESSING',
 					updatedAt: new Date(),
-			  })
+				})
 			: await prisma.Payment.create({
 					id: paymentId,
 					userId,
@@ -244,14 +261,18 @@ export class PaymentService {
 					metadata: JSON.stringify({ clientSecret: pi.clientSecret }),
 					createdAt: new Date(),
 					updatedAt: new Date(),
-			  });
+				});
 
 		await recordAuditLog(prisma, {
 			actorId: userId,
 			entityType: 'Payment',
 			entityId: payment.id,
 			action: 'PAYMENT_INITIATED',
-			afterState: { id: payment.id, amount: payment.amount, status: payment.status },
+			afterState: {
+				id: payment.id,
+				amount: payment.amount,
+				status: payment.status,
+			},
 		});
 
 		return {
@@ -260,7 +281,11 @@ export class PaymentService {
 		};
 	}
 
-	async refund(paymentId: string, input?: RefundPaymentInput, actorId?: string) {
+	async refund(
+		paymentId: string,
+		input?: RefundPaymentInput,
+		actorId?: string,
+	) {
 		return await db.transaction(async (tx) => {
 			const txPrisma = ((tx.orm as any).public ?? tx.orm) as any;
 			const payment = await txPrisma.Payment.first({ id: paymentId });
@@ -270,7 +295,8 @@ export class PaymentService {
 				throw new BusinessRuleError('Only succeeded payments can be refunded');
 			}
 
-			const refundAmount = input?.amount ?? (payment.amount - payment.refundAmount);
+			const refundAmount =
+				input?.amount ?? payment.amount - payment.refundAmount;
 			if (refundAmount <= 0) {
 				throw new BusinessRuleError('Payment is already fully refunded');
 			}
@@ -284,7 +310,8 @@ export class PaymentService {
 			}
 
 			const newRefundTotal = payment.refundAmount + refundAmount;
-			const newStatus = newRefundTotal >= payment.amount ? 'REFUNDED' : payment.status;
+			const newStatus =
+				newRefundTotal >= payment.amount ? 'REFUNDED' : payment.status;
 
 			const updated = await txPrisma.Payment.where({ id: paymentId }).update({
 				refundAmount: newRefundTotal,
@@ -297,8 +324,14 @@ export class PaymentService {
 				entityType: 'Payment',
 				entityId: paymentId,
 				action: 'PAYMENT_REFUND',
-				beforeState: { status: payment.status, refundAmount: payment.refundAmount },
-				afterState: { status: updated.status, refundAmount: updated.refundAmount },
+				beforeState: {
+					status: payment.status,
+					refundAmount: payment.refundAmount,
+				},
+				afterState: {
+					status: updated.status,
+					refundAmount: updated.refundAmount,
+				},
 			});
 
 			return updated;
@@ -314,12 +347,18 @@ export class PaymentService {
 	/**
 	 * Webhook processor: idempotent on stripeEventId
 	 */
-	async handleWebhook(event: { id: string; type: string; data: { object: any } }) {
+	async handleWebhook(event: {
+		id: string;
+		type: string;
+		data: { object: any };
+	}) {
 		return await db.transaction(async (tx) => {
 			const txPrisma = ((tx.orm as any).public ?? tx.orm) as any;
 
 			// Check idempotency on stripeEventId
-			const existingEvent = await txPrisma.StripeWebhookEvent.first({ stripeEventId: event.id });
+			const existingEvent = await txPrisma.StripeWebhookEvent.first({
+				stripeEventId: event.id,
+			});
 			if (existingEvent) {
 				return { received: true, alreadyProcessed: true };
 			}
@@ -337,7 +376,9 @@ export class PaymentService {
 
 			if (event.type === 'payment_intent.succeeded') {
 				const piId = obj.id;
-				const payment = await txPrisma.Payment.first({ stripePaymentIntentId: piId });
+				const payment = await txPrisma.Payment.first({
+					stripePaymentIntentId: piId,
+				});
 				if (payment) {
 					await txPrisma.Payment.where({ id: payment.id }).update({
 						status: 'SUCCEEDED',
@@ -355,11 +396,14 @@ export class PaymentService {
 
 					// If rent invoice, mark invoice paid or partially paid
 					if (payment.invoiceId) {
-						const invoice = await txPrisma.RentInvoice.first({ id: payment.invoiceId });
+						const invoice = await txPrisma.RentInvoice.first({
+							id: payment.invoiceId,
+						});
 						if (invoice) {
 							const newAmountPaid = invoice.amountPaid + payment.amount;
 							const totalDue = invoice.amount + invoice.lateFee;
-							const newInvoiceStatus = newAmountPaid >= totalDue ? 'PAID' : 'PARTIALLY_PAID';
+							const newInvoiceStatus =
+								newAmountPaid >= totalDue ? 'PAID' : 'PARTIALLY_PAID';
 
 							await txPrisma.RentInvoice.where({ id: invoice.id }).update({
 								amountPaid: newAmountPaid,
@@ -372,15 +416,23 @@ export class PaymentService {
 								entityType: 'RentInvoice',
 								entityId: invoice.id,
 								action: `INVOICE_${newInvoiceStatus}`,
-								beforeState: { amountPaid: invoice.amountPaid, status: invoice.status },
-								afterState: { amountPaid: newAmountPaid, status: newInvoiceStatus },
+								beforeState: {
+									amountPaid: invoice.amountPaid,
+									status: invoice.status,
+								},
+								afterState: {
+									amountPaid: newAmountPaid,
+									status: newInvoiceStatus,
+								},
 							});
 						}
 					}
 
 					// If bill share, mark bill share paid
 					if (payment.billShareId) {
-						const share = await txPrisma.BillShare.first({ id: payment.billShareId });
+						const share = await txPrisma.BillShare.first({
+							id: payment.billShareId,
+						});
 						if (share) {
 							await txPrisma.BillShare.where({ id: share.id }).update({
 								status: 'PAID',
@@ -389,8 +441,12 @@ export class PaymentService {
 							});
 
 							// Check if all shares for the bill are paid
-							const allShares = await txPrisma.BillShare.where({ billId: share.billId }).all();
-							const allSettled = allShares.every((s: any) => s.id === share.id || s.status === 'PAID');
+							const allShares = await txPrisma.BillShare.where({
+								billId: share.billId,
+							}).all();
+							const allSettled = allShares.every(
+								(s: any) => s.id === share.id || s.status === 'PAID',
+							);
 							if (allSettled) {
 								await txPrisma.UtilityBill.where({ id: share.billId }).update({
 									status: 'SETTLED',
@@ -402,7 +458,9 @@ export class PaymentService {
 				}
 			} else if (event.type === 'payment_intent.payment_failed') {
 				const piId = obj.id;
-				const payment = await txPrisma.Payment.first({ stripePaymentIntentId: piId });
+				const payment = await txPrisma.Payment.first({
+					stripePaymentIntentId: piId,
+				});
 				if (payment) {
 					await txPrisma.Payment.where({ id: payment.id }).update({
 						status: 'FAILED',

@@ -75,14 +75,14 @@ export const LeaseController = {
 };
 
 export {
-	listLeases,
-	getLease,
-	updateLease,
 	addTenant,
-	removeTenant,
-	listLeases as listLeasesHandler,
-	getLease as getLeaseHandler,
-	updateLease as updateLeaseHandler,
 	addTenant as addTenantHandler,
+	getLease,
+	getLease as getLeaseHandler,
+	listLeases,
+	listLeases as listLeasesHandler,
+	removeTenant,
 	removeTenant as removeTenantHandler,
+	updateLease,
+	updateLease as updateLeaseHandler,
 };

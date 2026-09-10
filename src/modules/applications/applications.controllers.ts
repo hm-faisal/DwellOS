@@ -69,7 +69,11 @@ const approveApplication = catchAsync(async (req: Request, res: Response) => {
 	const id = req.params.id as string;
 	const payload = req.body;
 	const user = req.user!;
-	const result = await applicationService.approveApplication(id, payload, user.id);
+	const result = await applicationService.approveApplication(
+		id,
+		payload,
+		user.id,
+	);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
@@ -88,16 +92,16 @@ export const ApplicationController = {
 };
 
 export {
-	createApplication,
-	listApplications,
-	getApplication,
 	addDocument,
-	updateStatus,
-	approveApplication,
-	createApplication as createApplicationHandler,
-	listApplications as listApplicationsHandler,
-	getApplication as getApplicationHandler,
 	addDocument as addDocumentHandler,
-	updateStatus as updateStatusHandler,
+	approveApplication,
 	approveApplication as approveApplicationHandler,
+	createApplication,
+	createApplication as createApplicationHandler,
+	getApplication,
+	getApplication as getApplicationHandler,
+	listApplications,
+	listApplications as listApplicationsHandler,
+	updateStatus,
+	updateStatus as updateStatusHandler,
 };

@@ -8,7 +8,11 @@ const createDocument = catchAsync(async (req: Request, res: Response) => {
 	const leaseId = req.params.id as string;
 	const payload = req.body;
 	const user = req.user!;
-	const result = await documentService.createDocument(leaseId, payload, user.id);
+	const result = await documentService.createDocument(
+		leaseId,
+		payload,
+		user.id,
+	);
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
 		success: true,
@@ -64,11 +68,11 @@ export const DocumentController = {
 
 export {
 	createDocument,
-	getDocument,
-	signDocument,
-	getDocumentAuditLog,
 	createDocument as createDocumentHandler,
+	getDocument,
 	getDocument as getDocumentHandler,
-	signDocument as signDocumentHandler,
+	getDocumentAuditLog,
 	getDocumentAuditLog as getDocumentAuditLogHandler,
+	signDocument,
+	signDocument as signDocumentHandler,
 };

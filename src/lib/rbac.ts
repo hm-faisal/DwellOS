@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ForbiddenError, NotFoundError, UnauthorizedError } from './errors.ts';
-import { db, prisma } from './prisma.ts';
+import { prisma } from './prisma.ts';
 
 export type UserRole = 'TENANT' | 'OWNER' | 'ADMIN';
 
@@ -59,9 +59,11 @@ export const requirePropertyScope = (paramKey = 'id') => {
 				return next();
 			}
 
-			const propertyId = req.params[paramKey] || (req.body && req.body[paramKey]);
+			const propertyId = req.params[paramKey] || req.body?.[paramKey];
 			if (!propertyId) {
-				return next(new NotFoundError('Property identifier missing from request'));
+				return next(
+					new NotFoundError('Property identifier missing from request'),
+				);
 			}
 
 			const property = await prisma.Property.first({ id: propertyId });
@@ -70,7 +72,12 @@ export const requirePropertyScope = (paramKey = 'id') => {
 			}
 
 			if (property.ownerId === req.user.id) {
-				req.scope = { propertyId, isOwner: true, isManager: false, isTenant: false };
+				req.scope = {
+					propertyId,
+					isOwner: true,
+					isManager: false,
+					isTenant: false,
+				};
 				return next();
 			}
 
@@ -81,12 +88,19 @@ export const requirePropertyScope = (paramKey = 'id') => {
 			});
 
 			if (manager) {
-				req.scope = { propertyId, isOwner: false, isManager: true, isTenant: false };
+				req.scope = {
+					propertyId,
+					isOwner: false,
+					isManager: true,
+					isTenant: false,
+				};
 				return next();
 			}
 
 			return next(
-				new ForbiddenError('You do not have permission to manage this property'),
+				new ForbiddenError(
+					'You do not have permission to manage this property',
+				),
 			);
 		} catch (error) {
 			next(error);
@@ -109,7 +123,7 @@ export const requireRoomScope = (paramKey = 'id') => {
 				return next();
 			}
 
-			const roomId = req.params[paramKey] || (req.body && req.body[paramKey]);
+			const roomId = req.params[paramKey] || req.body?.[paramKey];
 			if (!roomId) {
 				return next(new NotFoundError('Room identifier missing from request'));
 			}
@@ -125,7 +139,12 @@ export const requireRoomScope = (paramKey = 'id') => {
 			}
 
 			if (property.ownerId === req.user.id) {
-				req.scope = { propertyId: property.id, isOwner: true, isManager: false, isTenant: false };
+				req.scope = {
+					propertyId: property.id,
+					isOwner: true,
+					isManager: false,
+					isTenant: false,
+				};
 				return next();
 			}
 
@@ -135,7 +154,12 @@ export const requireRoomScope = (paramKey = 'id') => {
 			});
 
 			if (manager) {
-				req.scope = { propertyId: property.id, isOwner: false, isManager: true, isTenant: false };
+				req.scope = {
+					propertyId: property.id,
+					isOwner: false,
+					isManager: true,
+					isTenant: false,
+				};
 				return next();
 			}
 
@@ -163,7 +187,7 @@ export const requireLeaseScope = (paramKey = 'id') => {
 				return next();
 			}
 
-			const leaseId = req.params[paramKey] || (req.body && req.body[paramKey]);
+			const leaseId = req.params[paramKey] || req.body?.[paramKey];
 			if (!leaseId) {
 				return next(new NotFoundError('Lease identifier missing from request'));
 			}
@@ -175,7 +199,12 @@ export const requireLeaseScope = (paramKey = 'id') => {
 
 			const property = await prisma.Property.first({ id: lease.propertyId });
 			if (property && property.ownerId === req.user.id) {
-				req.scope = { propertyId: property.id, isOwner: true, isManager: false, isTenant: false };
+				req.scope = {
+					propertyId: property.id,
+					isOwner: true,
+					isManager: false,
+					isTenant: false,
+				};
 				return next();
 			}
 
@@ -185,7 +214,12 @@ export const requireLeaseScope = (paramKey = 'id') => {
 					userId: req.user.id,
 				});
 				if (manager) {
-					req.scope = { propertyId: property.id, isOwner: false, isManager: true, isTenant: false };
+					req.scope = {
+						propertyId: property.id,
+						isOwner: false,
+						isManager: true,
+						isTenant: false,
+					};
 					return next();
 				}
 			}
@@ -197,11 +231,18 @@ export const requireLeaseScope = (paramKey = 'id') => {
 			});
 
 			if (leaseTenant) {
-				req.scope = { propertyId: lease.propertyId, isOwner: false, isManager: false, isTenant: true };
+				req.scope = {
+					propertyId: lease.propertyId,
+					isOwner: false,
+					isManager: false,
+					isTenant: true,
+				};
 				return next();
 			}
 
-			return next(new ForbiddenError('You do not have permission to access this lease'));
+			return next(
+				new ForbiddenError('You do not have permission to access this lease'),
+			);
 		} catch (error) {
 			next(error);
 		}
@@ -224,7 +265,9 @@ export const requireSelfOrAdmin = (paramKey = 'id') => {
 		const targetId = req.params[paramKey];
 		if (req.user.id !== targetId) {
 			return next(
-				new ForbiddenError('You can only perform this action on your own account'),
+				new ForbiddenError(
+					'You can only perform this action on your own account',
+				),
 			);
 		}
 

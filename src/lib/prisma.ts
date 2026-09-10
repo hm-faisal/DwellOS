@@ -1,12 +1,14 @@
 import { db } from '../prisma/db.ts';
 import { nowInstant, Temporal, toInstant } from './temporal.ts';
 
-export { db, nowInstant, toInstant, Temporal };
+export { db, nowInstant, Temporal, toInstant };
 
 function normalizeDates<T>(obj: T): T {
 	if (!obj || typeof obj !== 'object') return obj;
 	if (obj instanceof Date) {
-		return Temporal.Instant.fromEpochMilliseconds(obj.getTime()) as unknown as T;
+		return Temporal.Instant.fromEpochMilliseconds(
+			obj.getTime(),
+		) as unknown as T;
 	}
 	if (obj instanceof Temporal.Instant) return obj;
 	if (Array.isArray(obj)) {
@@ -41,7 +43,7 @@ export function wrapOrmClient<T extends object>(target: T): T {
 		get(modelTarget: any, modelProp: string | symbol) {
 			const orig = modelTarget[modelProp];
 			if (typeof orig === 'function') {
-				return function (...args: any[]) {
+				return (...args: any[]) => {
 					const mappedArgs = args.map((arg) => {
 						if (typeof arg === 'function') {
 							return (fields: any, fns: any) => {
@@ -68,7 +70,10 @@ export function wrapOrmClient<T extends object>(target: T): T {
  * Returns a typed, Temporal-safe ORM client from db or a transaction tx.
  */
 export function getOrmClient(client?: any) {
-	const raw = ((client?.orm as any)?.public ?? client?.orm ?? (db.orm as any)?.public ?? db.orm) as any;
+	const raw = ((client?.orm as any)?.public ??
+		client?.orm ??
+		(db.orm as any)?.public ??
+		db.orm) as any;
 	return wrapOrmClient(raw);
 }
 
@@ -115,7 +120,8 @@ export function paginateResults<T extends { id: string }>(
 ) {
 	const hasNextPage = items.length > limit;
 	const data = hasNextPage ? items.slice(0, limit) : items;
-	const nextCursor = hasNextPage && data.length > 0 ? data[data.length - 1].id : null;
+	const nextCursor =
+		hasNextPage && data.length > 0 ? data[data.length - 1].id : null;
 
 	return {
 		items: data,

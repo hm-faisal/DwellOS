@@ -33,8 +33,8 @@ export const RentController = {
 };
 
 export {
-	listLeaseInvoices,
 	getInvoice,
-	listLeaseInvoices as listLeaseInvoicesHandler,
 	getInvoice as getInvoiceHandler,
+	listLeaseInvoices,
+	listLeaseInvoices as listLeaseInvoicesHandler,
 };

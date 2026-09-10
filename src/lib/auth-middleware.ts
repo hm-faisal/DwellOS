@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { envConfig } from '../config/index.ts';
 import { ForbiddenError, UnauthorizedError } from './errors.ts';
-import { db, prisma } from './prisma.ts';
+import { prisma } from './prisma.ts';
 
 export interface TokenPayload {
 	id: string;
@@ -35,7 +35,9 @@ export const verifyAccessToken = (token: string): TokenPayload => {
 	try {
 		return jwt.verify(token, envConfig.jwt.secret) as TokenPayload;
 	} catch (err: any) {
-		throw new UnauthorizedError('Invalid or expired access token', { originalError: err.message });
+		throw new UnauthorizedError('Invalid or expired access token', {
+			originalError: err.message,
+		});
 	}
 };
 
@@ -43,11 +45,17 @@ export const verifyRefreshToken = (token: string): TokenPayload => {
 	try {
 		return jwt.verify(token, envConfig.jwt.refreshSecret) as TokenPayload;
 	} catch (err: any) {
-		throw new UnauthorizedError('Invalid or expired refresh token', { originalError: err.message });
+		throw new UnauthorizedError('Invalid or expired refresh token', {
+			originalError: err.message,
+		});
 	}
 };
 
-export const authenticate = async (req: Request, _res: Response, next: NextFunction) => {
+export const authenticate = async (
+	req: Request,
+	_res: Response,
+	next: NextFunction,
+) => {
 	try {
 		const authHeader = req.headers.authorization;
 		let token: string | undefined;
@@ -67,7 +75,9 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
 		// Verify user exists and check if suspended/banned
 		const user = await prisma.User.first({ id: decoded.id });
 		if (!user) {
-			throw new UnauthorizedError('User associated with token no longer exists');
+			throw new UnauthorizedError(
+				'User associated with token no longer exists',
+			);
 		}
 
 		if (user.status === 'SUSPENDED' || user.status === 'BANNED') {

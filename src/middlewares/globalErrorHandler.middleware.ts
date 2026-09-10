@@ -1,4 +1,9 @@
-import type { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
+import type {
+	ErrorRequestHandler,
+	NextFunction,
+	Request,
+	Response,
+} from 'express';
 import httpStatus from 'http-status';
 import multer from 'multer';
 import { ZodError } from 'zod';

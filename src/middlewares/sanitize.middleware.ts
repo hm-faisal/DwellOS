@@ -9,7 +9,11 @@ import { sanitizeObject } from '../utils/sanitize.ts';
  * - Malicious script/iframe/object tags
  * - Inline event handlers (onerror, onload, etc.)
  */
-export const sanitizeInput = (req: Request, _res: Response, next: NextFunction): void => {
+export const sanitizeInput = (
+	req: Request,
+	_res: Response,
+	next: NextFunction,
+): void => {
 	if (req.body && typeof req.body === 'object') {
 		req.body = sanitizeObject(req.body);
 	}

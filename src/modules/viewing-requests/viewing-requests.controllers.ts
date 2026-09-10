@@ -7,7 +7,10 @@ import { viewingRequestService } from './viewing-requests.services.ts';
 const createViewingRequest = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user!;
 	const payload = req.body;
-	const result = await viewingRequestService.createViewingRequest(user.id, payload);
+	const result = await viewingRequestService.createViewingRequest(
+		user.id,
+		payload,
+	);
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
 		success: true,
@@ -19,7 +22,10 @@ const createViewingRequest = catchAsync(async (req: Request, res: Response) => {
 const listViewingRequests = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user!;
 	const query = req.query;
-	const result = await viewingRequestService.listViewingRequests(user, query as any);
+	const result = await viewingRequestService.listViewingRequests(
+		user,
+		query as any,
+	);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
@@ -54,9 +60,9 @@ export const ViewingRequestController = {
 
 export {
 	createViewingRequest,
-	listViewingRequests,
-	updateViewingRequest,
 	createViewingRequest as createViewingRequestHandler,
+	listViewingRequests,
 	listViewingRequests as listViewingRequestsHandler,
+	updateViewingRequest,
 	updateViewingRequest as updateViewingRequestHandler,
 };

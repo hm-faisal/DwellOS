@@ -23,11 +23,7 @@ router.post(
 	SearchController.createSavedSearch,
 );
 
-router.get(
-	'/saved',
-	authenticate,
-	SearchController.getSavedSearches,
-);
+router.get('/saved', authenticate, SearchController.getSavedSearches);
 
 router.delete(
 	'/saved/:id',

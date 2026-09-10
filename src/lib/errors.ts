@@ -10,7 +10,12 @@ export class AppError extends Error {
 	public readonly code: string;
 	public readonly details?: ErrorDetails;
 
-	constructor(statusCode: number, code: string, message: string, details?: ErrorDetails) {
+	constructor(
+		statusCode: number,
+		code: string,
+		message: string,
+		details?: ErrorDetails,
+	) {
 		super(message);
 		this.statusCode = statusCode;
 		this.code = code;
@@ -45,7 +50,10 @@ export class NotFoundError extends AppError {
 }
 
 export class ConflictError extends AppError {
-	constructor(message = 'Resource conflict or concurrent modification', details?: ErrorDetails) {
+	constructor(
+		message = 'Resource conflict or concurrent modification',
+		details?: ErrorDetails,
+	) {
 		super(409, 'CONFLICT', message, details);
 	}
 }
@@ -62,7 +70,12 @@ export class InternalServerError extends AppError {
 	}
 }
 
-export const sendSuccess = <T>(res: Response, data: T, statusCode = 200, message = 'Success') => {
+export const sendSuccess = <T>(
+	res: Response,
+	data: T,
+	statusCode = 200,
+	message = 'Success',
+) => {
 	return sendResponse(res, {
 		success: true,
 		statusCode,

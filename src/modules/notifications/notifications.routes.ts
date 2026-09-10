@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../../lib/auth-middleware.ts';
 import { validateRequest } from '../../middlewares/validateRequest.middleware.ts';
- import { NotificationController } from './notifications.controllers.ts';
+import { NotificationController } from './notifications.controllers.ts';
 import {
 	listNotificationsQuerySchema,
 	notificationIdParamSchema,
@@ -24,11 +24,7 @@ router.patch(
 	NotificationController.markAsRead,
 );
 
-router.get(
-	'/preferences',
-	authenticate,
-	NotificationController.getPreferences,
-);
+router.get('/preferences', authenticate, NotificationController.getPreferences);
 
 router.patch(
 	'/preferences',

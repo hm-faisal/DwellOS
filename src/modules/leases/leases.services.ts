@@ -1,15 +1,35 @@
-import { BusinessRuleError, ConflictError, NotFoundError } from '../../lib/errors.ts';
-import { db, paginateResults, prisma, recordAuditLog } from '../../lib/prisma.ts';
+import {
+	BusinessRuleError,
+	ConflictError,
+	NotFoundError,
+} from '../../lib/errors.ts';
+import {
+	db,
+	paginateResults,
+	prisma,
+	recordAuditLog,
+} from '../../lib/prisma.ts';
 import type { AddTenantInput, UpdateLeaseInput } from './leases.schemas.ts';
 
 export class LeaseService {
-	async listLeases(user: { id: string; role: string }, query?: { propertyId?: string; roomId?: string; cursor?: string; limit?: number; status?: string }) {
+	async listLeases(
+		user: { id: string; role: string },
+		query?: {
+			propertyId?: string;
+			roomId?: string;
+			cursor?: string;
+			limit?: number;
+			status?: string;
+		},
+	) {
 		const limit = query?.limit || 20;
 		let q = prisma.Lease;
 
 		if (user.role === 'TENANT') {
 			// Find leases where user is a tenant
-			const leaseTenants = await prisma.LeaseTenant.where({ tenantId: user.id }).all();
+			const leaseTenants = await prisma.LeaseTenant.where({
+				tenantId: user.id,
+			}).all();
 			const leaseIds = leaseTenants.map((lt: any) => lt.leaseId);
 			if (leaseIds.length === 0) {
 				return paginateResults([], limit);
@@ -38,7 +58,9 @@ export class LeaseService {
 		const resultsWithTenants = [];
 
 		for (const lease of leases) {
-			const tenants = await prisma.LeaseTenant.where({ leaseId: lease.id }).all();
+			const tenants = await prisma.LeaseTenant.where({
+				leaseId: lease.id,
+			}).all();
 			const room = await prisma.Room.first({ id: lease.roomId });
 			resultsWithTenants.push({
 				...lease,
@@ -65,7 +87,14 @@ export class LeaseService {
 			const user = await prisma.User.first({ id: lt.tenantId });
 			tenants.push({
 				...lt,
-				user: user ? { id: user.id, name: user.name, email: user.email, phone: user.phone } : null,
+				user: user
+					? {
+							id: user.id,
+							name: user.name,
+							email: user.email,
+							phone: user.phone,
+						}
+					: null,
 			});
 		}
 
@@ -102,20 +131,30 @@ export class LeaseService {
 					const nextOccupied = Math.max(0, room.occupiedSlots - 1);
 					const nextStatus = nextOccupied === 0 ? 'AVAILABLE' : room.status;
 
-					const updatedRoom = await txPrisma.Room.where({ id: room.id }).update({
-						occupiedSlots: nextOccupied,
-						status: nextStatus,
-						version: room.version + 1,
-						updatedAt: new Date(),
-					});
+					const updatedRoom = await txPrisma.Room.where({ id: room.id }).update(
+						{
+							occupiedSlots: nextOccupied,
+							status: nextStatus,
+							version: room.version + 1,
+							updatedAt: new Date(),
+						},
+					);
 
 					await recordAuditLog(txPrisma, {
 						actorId,
 						entityType: 'Room',
 						entityId: room.id,
 						action: 'ROOM_OCCUPANCY_DECREASED',
-						beforeState: { status: room.status, occupiedSlots: room.occupiedSlots, version: room.version },
-						afterState: { status: updatedRoom.status, occupiedSlots: updatedRoom.occupiedSlots, version: updatedRoom.version },
+						beforeState: {
+							status: room.status,
+							occupiedSlots: room.occupiedSlots,
+							version: room.version,
+						},
+						afterState: {
+							status: updatedRoom.status,
+							occupiedSlots: updatedRoom.occupiedSlots,
+							version: updatedRoom.version,
+						},
 					});
 				}
 
@@ -134,7 +173,9 @@ export class LeaseService {
 
 			if (input.action === 'RENEW') {
 				if (!input.newEndDate) {
-					throw new BusinessRuleError('newEndDate is required for lease renewal');
+					throw new BusinessRuleError(
+						'newEndDate is required for lease renewal',
+					);
 				}
 
 				const updatedLease = await txPrisma.Lease.where({ id }).update({
@@ -170,7 +211,10 @@ export class LeaseService {
 			throw new NotFoundError('User not found');
 		}
 
-		const existing = await prisma.LeaseTenant.first({ leaseId, tenantId: input.userId });
+		const existing = await prisma.LeaseTenant.first({
+			leaseId,
+			tenantId: input.userId,
+		});
 		if (existing) {
 			throw new ConflictError('User is already a tenant on this lease');
 		}
@@ -195,7 +239,10 @@ export class LeaseService {
 	}
 
 	async removeTenant(leaseId: string, userId: string, actorId: string) {
-		const leaseTenant = await prisma.LeaseTenant.first({ leaseId, tenantId: userId });
+		const leaseTenant = await prisma.LeaseTenant.first({
+			leaseId,
+			tenantId: userId,
+		});
 		if (!leaseTenant) {
 			throw new NotFoundError('Tenant assignment not found on this lease');
 		}

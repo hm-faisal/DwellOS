@@ -1,9 +1,23 @@
 import { NotFoundError } from '../../lib/errors.ts';
-import { nowInstant, paginateResults, prisma, recordAuditLog } from '../../lib/prisma.ts';
-import type { UpdateAdminUserInput, UpdateDisputeInput } from './admin.schemas.ts';
+import {
+	nowInstant,
+	paginateResults,
+	prisma,
+	recordAuditLog,
+} from '../../lib/prisma.ts';
+import type {
+	UpdateAdminUserInput,
+	UpdateDisputeInput,
+} from './admin.schemas.ts';
 
 export class AdminService {
-	async listUsers(query?: { cursor?: string; limit?: number; role?: string; status?: string; search?: string }) {
+	async listUsers(query?: {
+		cursor?: string;
+		limit?: number;
+		role?: string;
+		status?: string;
+		search?: string;
+	}) {
 		const limit = query?.limit || 20;
 		let q = prisma.User;
 
@@ -77,7 +91,12 @@ export class AdminService {
 		};
 	}
 
-	async listDisputes(query?: { cursor?: string; limit?: number; status?: string; category?: string }) {
+	async listDisputes(query?: {
+		cursor?: string;
+		limit?: number;
+		status?: string;
+		category?: string;
+	}) {
 		const limit = query?.limit || 20;
 		let q = prisma.Dispute;
 
@@ -138,7 +157,13 @@ export class AdminService {
 		return updated;
 	}
 
-	async listAuditLogs(query?: { cursor?: string; limit?: number; entityType?: string; entityId?: string; action?: string }) {
+	async listAuditLogs(query?: {
+		cursor?: string;
+		limit?: number;
+		entityType?: string;
+		entityId?: string;
+		action?: string;
+	}) {
 		const limit = query?.limit || 50;
 		let q = prisma.AuditLog;
 

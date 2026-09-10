@@ -58,9 +58,6 @@ router.get(
 );
 
 // Webhook endpoint: no auth, verified by signature or payload
-router.post(
-	'/webhooks/stripe',
-	PaymentController.stripeWebhook,
-);
+router.post('/webhooks/stripe', PaymentController.stripeWebhook);
 
 export default router;

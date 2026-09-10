@@ -1,4 +1,3 @@
-
 import { Router } from 'express';
 import adminRoutes from '../modules/admin/admin.routes.ts';
 import applicationRoutes from '../modules/applications/applications.routes.ts';
@@ -43,6 +42,8 @@ const moduleRoutes = [
 	{ path: '/admin', route: adminRoutes },
 ];
 
-moduleRoutes.forEach((item) => router.use(item.path, item.route));
+for (const item of moduleRoutes) {
+	router.use(item.path, item.route);
+}
 
 export default router;

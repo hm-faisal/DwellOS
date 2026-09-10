@@ -49,9 +49,9 @@ export const UserController = {
 
 export {
 	getUser,
-	updateUser,
-	suspendUser,
 	getUser as getUserHandler,
-	updateUser as updateUserHandler,
+	suspendUser,
 	suspendUser as suspendUserHandler,
+	updateUser,
+	updateUser as updateUserHandler,
 };

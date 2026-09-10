@@ -6,7 +6,10 @@ import { dashboardService } from './dashboard.services.ts';
 
 const getOverview = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user!;
-	const result = await dashboardService.getPortfolioOverview(user.id, user.role);
+	const result = await dashboardService.getPortfolioOverview(
+		user.id,
+		user.role,
+	);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
@@ -33,7 +36,7 @@ export const DashboardController = {
 
 export {
 	getOverview,
-	getPropertyDashboard,
 	getOverview as getOverviewHandler,
+	getPropertyDashboard,
 	getPropertyDashboard as getPropertyDashboardHandler,
 };

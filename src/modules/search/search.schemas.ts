@@ -1,8 +1,23 @@
 import { z } from 'zod';
 
 const PROHIBITED_DEMOGRAPHIC_TERMS = [
-	'race', 'religion', 'christian', 'muslim', 'jewish', 'white', 'black', 'asian', 'latino',
-	'no children', 'singles only', 'no kids', 'straight', 'gay', 'heterosexual', 'disability', 'handicapped'
+	'race',
+	'religion',
+	'christian',
+	'muslim',
+	'jewish',
+	'white',
+	'black',
+	'asian',
+	'latino',
+	'no children',
+	'singles only',
+	'no kids',
+	'straight',
+	'gay',
+	'heterosexual',
+	'disability',
+	'handicapped',
 ];
 
 const fairHousingCheck = (val?: string): boolean => {
@@ -12,43 +27,86 @@ const fairHousingCheck = (val?: string): boolean => {
 };
 
 export const searchPropertiesQuerySchema = z.object({
-	query: z.object({
-		location: z.string().trim().max(100).refine(fairHousingCheck, {
-			message: 'Search query violates Fair Housing compliance guidelines',
-		}).optional(),
-		priceMin: z.coerce.number().int().nonnegative().max(100_000_000).optional(),
-		priceMax: z.coerce.number().int().nonnegative().max(100_000_000).optional(),
-		roomType: z.enum(['PRIVATE', 'SHARED']).optional(),
-		moveInDate: z.string().datetime().optional(),
-		amenities: z.string().trim().max(500).refine(fairHousingCheck, {
-			message: 'Filter terms violate Fair Housing compliance guidelines',
-		}).optional(), // Comma-separated
-		cursor: z.string().trim().optional(),
-		limit: z.coerce.number().int().min(1).max(100).default(20),
-	}).strict().optional(),
+	query: z
+		.object({
+			location: z
+				.string()
+				.trim()
+				.max(100)
+				.refine(fairHousingCheck, {
+					message: 'Search query violates Fair Housing compliance guidelines',
+				})
+				.optional(),
+			priceMin: z.coerce
+				.number()
+				.int()
+				.nonnegative()
+				.max(100_000_000)
+				.optional(),
+			priceMax: z.coerce
+				.number()
+				.int()
+				.nonnegative()
+				.max(100_000_000)
+				.optional(),
+			roomType: z.enum(['PRIVATE', 'SHARED']).optional(),
+			moveInDate: z.string().datetime().optional(),
+			amenities: z
+				.string()
+				.trim()
+				.max(500)
+				.refine(fairHousingCheck, {
+					message: 'Filter terms violate Fair Housing compliance guidelines',
+				})
+				.optional(), // Comma-separated
+			cursor: z.string().trim().optional(),
+			limit: z.coerce.number().int().min(1).max(100).default(20),
+		})
+		.strict()
+		.optional(),
 });
 
 export const createSavedSearchSchema = z.object({
-	body: z.object({
-		name: z.string().trim().min(1).max(100).optional(),
-		location: z.string().trim().max(100).refine(fairHousingCheck, {
-			message: 'Search location violates Fair Housing compliance guidelines',
-		}).optional(),
-		priceMin: z.number().int().nonnegative().max(100_000_000).optional(),
-		priceMax: z.number().int().nonnegative().max(100_000_000).optional(),
-		roomType: z.enum(['PRIVATE', 'SHARED']).optional(),
-		moveInDate: z.string().datetime().optional(),
-		amenities: z.array(z.string().trim().refine(fairHousingCheck, {
-			message: 'Amenity filter violates Fair Housing compliance guidelines',
-		})).max(50).default([]),
-	}).strict(),
+	body: z
+		.object({
+			name: z.string().trim().min(1).max(100).optional(),
+			location: z
+				.string()
+				.trim()
+				.max(100)
+				.refine(fairHousingCheck, {
+					message:
+						'Search location violates Fair Housing compliance guidelines',
+				})
+				.optional(),
+			priceMin: z.number().int().nonnegative().max(100_000_000).optional(),
+			priceMax: z.number().int().nonnegative().max(100_000_000).optional(),
+			roomType: z.enum(['PRIVATE', 'SHARED']).optional(),
+			moveInDate: z.string().datetime().optional(),
+			amenities: z
+				.array(
+					z.string().trim().refine(fairHousingCheck, {
+						message:
+							'Amenity filter violates Fair Housing compliance guidelines',
+					}),
+				)
+				.max(50)
+				.default([]),
+		})
+		.strict(),
 });
 
 export const savedSearchIdParamSchema = z.object({
-	params: z.object({
-		id: z.string().trim().min(1, 'Saved search ID is required'),
-	}).strict(),
+	params: z
+		.object({
+			id: z.string().trim().min(1, 'Saved search ID is required'),
+		})
+		.strict(),
 });
 
-export type SearchPropertiesQuery = z.infer<typeof searchPropertiesQuerySchema>['query'];
-export type CreateSavedSearchInput = z.infer<typeof createSavedSearchSchema>['body'];
+export type SearchPropertiesQuery = z.infer<
+	typeof searchPropertiesQuerySchema
+>['query'];
+export type CreateSavedSearchInput = z.infer<
+	typeof createSavedSearchSchema
+>['body'];

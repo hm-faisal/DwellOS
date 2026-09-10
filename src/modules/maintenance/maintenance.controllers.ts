@@ -8,7 +8,11 @@ const createMaintenance = catchAsync(async (req: Request, res: Response) => {
 	const roomId = req.params.id as string;
 	const payload = req.body;
 	const user = req.user!;
-	const result = await maintenanceService.createRequest(roomId, payload, user.id);
+	const result = await maintenanceService.createRequest(
+		roomId,
+		payload,
+		user.id,
+	);
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
 		success: true,
@@ -76,13 +80,13 @@ export const MaintenanceController = {
 
 export {
 	createMaintenance,
-	listMaintenance,
-	getMaintenance,
-	updateMaintenance,
-	rateMaintenance,
 	createMaintenance as createMaintenanceHandler,
-	listMaintenance as listMaintenanceHandler,
+	getMaintenance,
 	getMaintenance as getMaintenanceHandler,
-	updateMaintenance as updateMaintenanceHandler,
+	listMaintenance,
+	listMaintenance as listMaintenanceHandler,
+	rateMaintenance,
 	rateMaintenance as rateMaintenanceHandler,
+	updateMaintenance,
+	updateMaintenance as updateMaintenanceHandler,
 };

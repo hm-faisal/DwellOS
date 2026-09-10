@@ -7,7 +7,10 @@ import { notificationService } from './notifications.services.ts';
 const listNotifications = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user!;
 	const query = req.query;
-	const result = await notificationService.getNotifications(user.id, query as any);
+	const result = await notificationService.getNotifications(
+		user.id,
+		query as any,
+	);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
@@ -59,12 +62,12 @@ export const NotificationController = {
 };
 
 export {
-	listNotifications,
-	markAsRead,
 	getPreferences,
-	updatePreferences,
-	listNotifications as listNotificationsHandler,
-	markAsRead as markAsReadHandler,
 	getPreferences as getPreferencesHandler,
+	listNotifications,
+	listNotifications as listNotificationsHandler,
+	markAsRead,
+	markAsRead as markAsReadHandler,
+	updatePreferences,
 	updatePreferences as updatePreferencesHandler,
 };

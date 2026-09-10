@@ -1,9 +1,15 @@
 import { ForbiddenError, NotFoundError } from '../../lib/errors.ts';
 import { paginateResults, prisma, recordAuditLog } from '../../lib/prisma.ts';
-import type { CreateViewingRequestInput, UpdateViewingRequestInput } from './viewing-requests.schemas.ts';
+import type {
+	CreateViewingRequestInput,
+	UpdateViewingRequestInput,
+} from './viewing-requests.schemas.ts';
 
 export class ViewingRequestService {
-	async createViewingRequest(tenantId: string, input: CreateViewingRequestInput) {
+	async createViewingRequest(
+		tenantId: string,
+		input: CreateViewingRequestInput,
+	) {
 		const room = await prisma.Room.first({ id: input.roomId });
 		if (!room) {
 			throw new NotFoundError('Room not found');
@@ -42,7 +48,15 @@ export class ViewingRequestService {
 		return viewing;
 	}
 
-	async listViewingRequests(user: { id: string; role: string }, query?: { roomId?: string; cursor?: string; limit?: number; status?: string }) {
+	async listViewingRequests(
+		user: { id: string; role: string },
+		query?: {
+			roomId?: string;
+			cursor?: string;
+			limit?: number;
+			status?: string;
+		},
+	) {
 		const limit = query?.limit || 20;
 		let q = prisma.ViewingRequest;
 
@@ -59,7 +73,9 @@ export class ViewingRequestService {
 		q = q.orderBy((v: any) => v.createdAt.desc()).limit(limit + 1);
 
 		if (query?.cursor) {
-			const cursorRecord = await prisma.ViewingRequest.first({ id: query.cursor });
+			const cursorRecord = await prisma.ViewingRequest.first({
+				id: query.cursor,
+			});
 			if (cursorRecord) {
 				q = q.cursor({ createdAt: cursorRecord.createdAt });
 			}
@@ -69,17 +85,23 @@ export class ViewingRequestService {
 		return paginateResults(results, limit);
 	}
 
-	async updateViewingRequest(id: string, input: UpdateViewingRequestInput, actorId: string, actorRole: string) {
+	async updateViewingRequest(
+		id: string,
+		input: UpdateViewingRequestInput,
+		actorId: string,
+		actorRole: string,
+	) {
 		const viewing = await prisma.ViewingRequest.first({ id });
 		if (!viewing) {
 			throw new NotFoundError('Viewing request not found');
 		}
 
 		const room = await prisma.Room.first({ id: viewing.roomId });
-		const property = room ? await prisma.Property.first({ id: room.propertyId }) : null;
+		const property = room
+			? await prisma.Property.first({ id: room.propertyId })
+			: null;
 		const isOwnerOrManager =
-			actorRole === 'ADMIN' ||
-			(property && property.ownerId === actorId);
+			actorRole === 'ADMIN' || (property && property.ownerId === actorId);
 
 		const isTenant = viewing.tenantId === actorId;
 
@@ -90,7 +112,9 @@ export class ViewingRequestService {
 
 		const updated = await prisma.ViewingRequest.where({ id }).update({
 			status: input.status,
-			alternateDate: input.alternateDate ? new Date(input.alternateDate) : viewing.alternateDate,
+			alternateDate: input.alternateDate
+				? new Date(input.alternateDate)
+				: viewing.alternateDate,
 			notes: input.notes ?? viewing.notes,
 			updatedAt: new Date(),
 		});

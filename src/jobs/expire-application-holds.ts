@@ -26,7 +26,9 @@ export async function expireApplicationHoldsJob(): Promise<void> {
 			}
 
 			// 1. Mark application as EXPIRED
-			const updatedApp = await txPrisma.Application.where({ id: app.id }).update({
+			await txPrisma.Application.where({
+				id: app.id,
+			}).update({
 				status: 'EXPIRED',
 				updatedAt: now,
 			});
@@ -48,22 +50,23 @@ export async function expireApplicationHoldsJob(): Promise<void> {
 					a.roomId.eq(room.id),
 				).all();
 
-				const stillHeld = otherActiveApps.some(
-					(other: any) => {
-						if (other.id === app.id) return false;
-						if (other.status !== 'SUBMITTED' && other.status !== 'UNDER_REVIEW') return false;
-						if (!other.holdExpiresAt) return false;
-						const holdInstant = toInstant(other.holdExpiresAt);
-						return holdInstant && Temporal.Instant.compare(holdInstant, now) > 0;
-					},
-				);
+				const stillHeld = otherActiveApps.some((other: any) => {
+					if (other.id === app.id) return false;
+					if (other.status !== 'SUBMITTED' && other.status !== 'UNDER_REVIEW')
+						return false;
+					if (!other.holdExpiresAt) return false;
+					const holdInstant = toInstant(other.holdExpiresAt);
+					return holdInstant && Temporal.Instant.compare(holdInstant, now) > 0;
+				});
 
 				if (!stillHeld) {
-					const updatedRoom = await txPrisma.Room.where({ id: room.id }).update({
-						status: 'AVAILABLE',
-						version: room.version + 1,
-						updatedAt: now,
-					});
+					const updatedRoom = await txPrisma.Room.where({ id: room.id }).update(
+						{
+							status: 'AVAILABLE',
+							version: room.version + 1,
+							updatedAt: now,
+						},
+					);
 
 					await recordAuditLog(txPrisma, {
 						actorId: null,
@@ -71,7 +74,10 @@ export async function expireApplicationHoldsJob(): Promise<void> {
 						entityId: room.id,
 						action: 'ROOM_HOLD_EXPIRED_REVERTED_TO_AVAILABLE',
 						beforeState: { status: room.status, version: room.version },
-						afterState: { status: updatedRoom.status, version: updatedRoom.version },
+						afterState: {
+							status: updatedRoom.status,
+							version: updatedRoom.version,
+						},
 					});
 				}
 			}

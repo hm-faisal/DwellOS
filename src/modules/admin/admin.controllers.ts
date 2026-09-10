@@ -72,14 +72,14 @@ export const AdminController = {
 };
 
 export {
-	listUsers,
-	updateUser,
-	listDisputes,
-	updateDispute,
 	listAuditLogs,
-	listUsers as listUsersHandler,
-	updateUser as updateUserHandler,
-	listDisputes as listDisputesHandler,
-	updateDispute as updateDisputeHandler,
 	listAuditLogs as listAuditLogsHandler,
+	listDisputes,
+	listDisputes as listDisputesHandler,
+	listUsers,
+	listUsers as listUsersHandler,
+	updateDispute,
+	updateDispute as updateDisputeHandler,
+	updateUser,
+	updateUser as updateUserHandler,
 };

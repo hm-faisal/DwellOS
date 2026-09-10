@@ -1,10 +1,13 @@
 import Stripe from 'stripe';
 import { envConfig } from '../config/index.ts';
 
-export const stripe = new Stripe(envConfig.stripe.secretKey || 'sk_test_placeholder', {
-	apiVersion: '2025-02-24.acacia' as any,
-	typescript: true,
-});
+export const stripe = new Stripe(
+	envConfig.stripe.secretKey || 'sk_test_placeholder',
+	{
+		apiVersion: '2025-02-24.acacia' as any,
+		typescript: true,
+	},
+);
 
 /**
  * Create or retrieve a Stripe customer for a tenant
@@ -35,7 +38,9 @@ export async function getOrCreateStripeCustomer(user: {
 /**
  * Create a SetupIntent to collect and save payment methods
  */
-export async function createSetupIntent(customerId: string): Promise<{ clientSecret: string; setupIntentId: string }> {
+export async function createSetupIntent(
+	customerId: string,
+): Promise<{ clientSecret: string; setupIntentId: string }> {
 	try {
 		const setupIntent = await stripe.setupIntents.create({
 			customer: customerId,
@@ -75,15 +80,21 @@ export async function createPaymentIntent(params: {
 			paymentIntentParams.customer = params.customerId;
 		}
 
-		if (params.destinationAccountId && !params.destinationAccountId.startsWith('acct_mock_')) {
+		if (
+			params.destinationAccountId &&
+			!params.destinationAccountId.startsWith('acct_mock_')
+		) {
 			paymentIntentParams.transfer_data = {
 				destination: params.destinationAccountId,
 			};
 		}
 
-		const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams, {
-			idempotencyKey: params.idempotencyKey,
-		});
+		const paymentIntent = await stripe.paymentIntents.create(
+			paymentIntentParams,
+			{
+				idempotencyKey: params.idempotencyKey,
+			},
+		);
 
 		return {
 			id: paymentIntent.id,
@@ -114,7 +125,7 @@ export async function refundPayment(params: {
 			amount: params.amount,
 			reason: params.reason,
 		});
-		return { id: refund.id, status: refund.status || "succeeded" };
+		return { id: refund.id, status: refund.status || 'succeeded' };
 	} catch {
 		return { id: `re_mock_${Date.now()}`, status: 'succeeded' };
 	}

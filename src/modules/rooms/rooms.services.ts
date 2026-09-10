@@ -1,9 +1,20 @@
 import { ConflictError, NotFoundError } from '../../lib/errors.ts';
-import { db, nowInstant, paginateResults, prisma, recordAuditLog, toInstant } from '../../lib/prisma.ts';
+import {
+	db,
+	nowInstant,
+	paginateResults,
+	prisma,
+	recordAuditLog,
+	toInstant,
+} from '../../lib/prisma.ts';
 import type { CreateRoomInput, UpdateRoomInput } from './rooms.schemas.ts';
 
 export class RoomService {
-	async createRoom(propertyId: string, input: CreateRoomInput, actorId: string) {
+	async createRoom(
+		propertyId: string,
+		input: CreateRoomInput,
+		actorId: string,
+	) {
 		const property = await prisma.Property.first({ id: propertyId });
 		if (!property) {
 			throw new NotFoundError('Property not found');
@@ -23,7 +34,9 @@ export class RoomService {
 			occupiedSlots: 0,
 			photos: input.photos,
 			status: 'AVAILABLE',
-			availableFrom: input.availableFrom ? toInstant(input.availableFrom) : null,
+			availableFrom: input.availableFrom
+				? toInstant(input.availableFrom)
+				: null,
 			minStayMonths: input.minStayMonths,
 			leaseTerms: input.leaseTerms ?? null,
 			version: 1,
@@ -42,7 +55,10 @@ export class RoomService {
 		return room;
 	}
 
-	async listRoomsByProperty(propertyId: string, query?: { cursor?: string; limit?: number; status?: string }) {
+	async listRoomsByProperty(
+		propertyId: string,
+		query?: { cursor?: string; limit?: number; status?: string },
+	) {
 		const limit = query?.limit || 20;
 		let q = prisma.Room.where({ propertyId });
 
@@ -72,7 +88,10 @@ export class RoomService {
 		}
 
 		const property = await prisma.Property.first({ id: room.propertyId });
-		const activeLeases = await prisma.Lease.where({ roomId: id, status: 'ACTIVE' }).all();
+		const activeLeases = await prisma.Lease.where({
+			roomId: id,
+			status: 'ACTIVE',
+		}).all();
 
 		return {
 			...room,
@@ -93,13 +112,18 @@ export class RoomService {
 			const isOccupancyOrStatusChange =
 				input.status !== undefined || input.occupiedSlots !== undefined;
 
-			if (input.expectedVersion !== undefined && input.expectedVersion !== room.version) {
+			if (
+				input.expectedVersion !== undefined &&
+				input.expectedVersion !== room.version
+			) {
 				throw new ConflictError(
 					`Room state has changed concurrently (current version: ${room.version}, expected: ${input.expectedVersion})`,
 				);
 			}
 
-			const nextVersion = isOccupancyOrStatusChange ? room.version + 1 : room.version;
+			const nextVersion = isOccupancyOrStatusChange
+				? room.version + 1
+				: room.version;
 
 			const updated = await txPrisma.Room.where({ id }).update({
 				name: input.name ?? room.name,
@@ -112,9 +136,12 @@ export class RoomService {
 				occupiedSlots: input.occupiedSlots ?? room.occupiedSlots,
 				photos: input.photos ?? room.photos,
 				status: input.status ?? room.status,
-				availableFrom: input.availableFrom ? toInstant(input.availableFrom) : room.availableFrom,
+				availableFrom: input.availableFrom
+					? toInstant(input.availableFrom)
+					: room.availableFrom,
 				minStayMonths: input.minStayMonths ?? room.minStayMonths,
-				leaseTerms: input.leaseTerms !== undefined ? input.leaseTerms : room.leaseTerms,
+				leaseTerms:
+					input.leaseTerms !== undefined ? input.leaseTerms : room.leaseTerms,
 				version: nextVersion,
 				updatedAt: nowInstant(),
 			});

@@ -27,11 +27,20 @@ class LightweightScheduler {
 	/**
 	 * Acquire distributed lock using Redis
 	 */
-	private async acquireLock(name: string, ttlMs: number): Promise<string | null> {
+	private async acquireLock(
+		name: string,
+		ttlMs: number,
+	): Promise<string | null> {
 		try {
 			const redis = getRedisClient();
 			const token = crypto.randomUUID();
-			const result = await redis.set(`dwellos:job:lock:${name}`, token, 'PX', ttlMs, 'NX');
+			const result = await redis.set(
+				`dwellos:job:lock:${name}`,
+				token,
+				'PX',
+				ttlMs,
+				'NX',
+			);
 			return result === 'OK' ? token : null;
 		} catch {
 			// If Redis is unreachable, execute locally
@@ -62,7 +71,9 @@ class LightweightScheduler {
 	start(): void {
 		if (this.isRunning) return;
 		this.isRunning = true;
-		console.log(`[Scheduler] Starting lightweight job scheduler with ${this.jobs.size} jobs...`);
+		console.log(
+			`[Scheduler] Starting lightweight job scheduler with ${this.jobs.size} jobs...`,
+		);
 
 		for (const [name, job] of this.jobs) {
 			// Run once shortly after startup

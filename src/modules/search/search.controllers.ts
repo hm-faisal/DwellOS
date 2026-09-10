@@ -58,12 +58,12 @@ export const SearchController = {
 };
 
 export {
-	searchProperties,
 	createSavedSearch,
-	getSavedSearches,
-	deleteSavedSearch,
-	searchProperties as searchPropertiesHandler,
 	createSavedSearch as createSavedSearchHandler,
-	getSavedSearches as getSavedSearchesHandler,
+	deleteSavedSearch,
 	deleteSavedSearch as deleteSavedSearchHandler,
+	getSavedSearches,
+	getSavedSearches as getSavedSearchesHandler,
+	searchProperties,
+	searchProperties as searchPropertiesHandler,
 };

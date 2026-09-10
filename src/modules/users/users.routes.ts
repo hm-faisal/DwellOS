@@ -11,7 +11,12 @@ import {
 
 const router = Router();
 
-router.get('/:id', authenticate, validateRequest(getUserParamsSchema), UserController.getUser);
+router.get(
+	'/:id',
+	authenticate,
+	validateRequest(getUserParamsSchema),
+	UserController.getUser,
+);
 router.patch(
 	'/:id',
 	authenticate,

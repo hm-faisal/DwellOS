@@ -6,13 +6,17 @@ import { stripe } from '../lib/stripe-client.ts';
  */
 export async function reconcileStripeJob(): Promise<void> {
 	try {
-		const pendingPayments = await prisma.Payment.where({ status: 'PROCESSING' }).all();
+		const pendingPayments = await prisma.Payment.where({
+			status: 'PROCESSING',
+		}).all();
 
 		for (const payment of pendingPayments) {
 			if (!payment.stripePaymentIntentId) continue;
 
 			try {
-				const pi = await stripe.paymentIntents.retrieve(payment.stripePaymentIntentId);
+				const pi = await stripe.paymentIntents.retrieve(
+					payment.stripePaymentIntentId,
+				);
 
 				if (pi.status === 'succeeded' && payment.status !== 'SUCCEEDED') {
 					await prisma.Payment.where({ id: payment.id }).update({
@@ -28,7 +32,10 @@ export async function reconcileStripeJob(): Promise<void> {
 						beforeState: { status: payment.status },
 						afterState: { status: 'SUCCEEDED' },
 					});
-				} else if (pi.status === 'canceled' || pi.status === 'requires_payment_method') {
+				} else if (
+					pi.status === 'canceled' ||
+					pi.status === 'requires_payment_method'
+				) {
 					if (payment.status !== 'FAILED') {
 						await prisma.Payment.where({ id: payment.id }).update({
 							status: 'FAILED',
@@ -46,7 +53,10 @@ export async function reconcileStripeJob(): Promise<void> {
 					}
 				}
 			} catch (stripeError) {
-				console.warn(`[ReconcileJob] Failed checking Stripe PaymentIntent ${payment.stripePaymentIntentId}:`, stripeError);
+				console.warn(
+					`[ReconcileJob] Failed checking Stripe PaymentIntent ${payment.stripePaymentIntentId}:`,
+					stripeError,
+				);
 			}
 		}
 	} catch (err) {

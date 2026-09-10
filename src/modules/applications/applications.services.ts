@@ -1,5 +1,14 @@
-import { BusinessRuleError, ConflictError, NotFoundError } from '../../lib/errors.ts';
-import { db, paginateResults, prisma, recordAuditLog } from '../../lib/prisma.ts';
+import {
+	BusinessRuleError,
+	ConflictError,
+	NotFoundError,
+} from '../../lib/errors.ts';
+import {
+	db,
+	paginateResults,
+	prisma,
+	recordAuditLog,
+} from '../../lib/prisma.ts';
 import type {
 	ApproveApplicationInput,
 	CreateApplicationInput,
@@ -14,12 +23,20 @@ export class ApplicationService {
 			throw new NotFoundError('Room not found');
 		}
 
-		if (room.status === 'OCCUPIED' || room.status === 'MAINTENANCE' || room.status === 'ARCHIVED') {
-			throw new BusinessRuleError(`Room is currently ${room.status.toLowerCase()} and cannot be applied for`);
+		if (
+			room.status === 'OCCUPIED' ||
+			room.status === 'MAINTENANCE' ||
+			room.status === 'ARCHIVED'
+		) {
+			throw new BusinessRuleError(
+				`Room is currently ${room.status.toLowerCase()} and cannot be applied for`,
+			);
 		}
 
 		// Calculate hold expiry time
-		const holdExpiresAt = new Date(Date.now() + input.holdHours * 60 * 60 * 1000);
+		const holdExpiresAt = new Date(
+			Date.now() + input.holdHours * 60 * 60 * 1000,
+		);
 		const id = crypto.randomUUID();
 
 		const application = await prisma.Application.create({
@@ -27,7 +44,9 @@ export class ApplicationService {
 			roomId: input.roomId,
 			tenantId,
 			moveInDate: new Date(input.moveInDate),
-			personalInfo: input.personalInfo ? JSON.stringify(input.personalInfo) : null,
+			personalInfo: input.personalInfo
+				? JSON.stringify(input.personalInfo)
+				: null,
 			employment: input.employment ? JSON.stringify(input.employment) : null,
 			references: input.references ? JSON.stringify(input.references) : null,
 			status: 'SUBMITTED',
@@ -65,7 +84,16 @@ export class ApplicationService {
 		return application;
 	}
 
-	async listApplications(user: { id: string; role: string }, query?: { roomId?: string; propertyId?: string; cursor?: string; limit?: number; status?: string }) {
+	async listApplications(
+		user: { id: string; role: string },
+		query?: {
+			roomId?: string;
+			propertyId?: string;
+			cursor?: string;
+			limit?: number;
+			status?: string;
+		},
+	) {
 		const limit = query?.limit || 20;
 		let q = prisma.Application;
 
@@ -100,17 +128,30 @@ export class ApplicationService {
 
 		const room = await prisma.Room.first({ id: application.roomId });
 		const tenant = await prisma.User.first({ id: application.tenantId });
-		const documents = await prisma.ApplicationDocument.where({ applicationId: id }).all();
+		const documents = await prisma.ApplicationDocument.where({
+			applicationId: id,
+		}).all();
 
 		return {
 			...application,
 			room,
-			tenant: tenant ? { id: tenant.id, name: tenant.name, email: tenant.email, phone: tenant.phone } : null,
+			tenant: tenant
+				? {
+						id: tenant.id,
+						name: tenant.name,
+						email: tenant.email,
+						phone: tenant.phone,
+					}
+				: null,
 			documents,
 		};
 	}
 
-	async addDocument(applicationId: string, input: UploadDocumentInput, actorId: string) {
+	async addDocument(
+		applicationId: string,
+		input: UploadDocumentInput,
+		actorId: string,
+	) {
 		const application = await prisma.Application.first({ id: applicationId });
 		if (!application) {
 			throw new NotFoundError('Application not found');
@@ -177,11 +218,17 @@ export class ApplicationService {
 	 * Transactional approval:
 	 * Locks Room, creates Lease + LeaseTenant, sets Room.status=OCCUPIED, auto-rejects competing applications, writes AuditLog
 	 */
-	async approveApplication(applicationId: string, input?: ApproveApplicationInput, actorId?: string) {
+	async approveApplication(
+		applicationId: string,
+		input?: ApproveApplicationInput,
+		actorId?: string,
+	) {
 		return await db.transaction(async (tx) => {
 			const txPrisma = ((tx.orm as any).public ?? tx.orm) as any;
 
-			const application = await txPrisma.Application.first({ id: applicationId });
+			const application = await txPrisma.Application.first({
+				id: applicationId,
+			});
 			if (!application) {
 				throw new NotFoundError('Application not found');
 			}
@@ -196,13 +243,19 @@ export class ApplicationService {
 			}
 
 			// Optimistic concurrency check
-			if (input?.expectedRoomVersion && input.expectedRoomVersion !== room.version) {
+			if (
+				input?.expectedRoomVersion &&
+				input.expectedRoomVersion !== room.version
+			) {
 				throw new ConflictError(
 					`Room occupancy was modified concurrently (current version: ${room.version}, expected: ${input.expectedRoomVersion})`,
 				);
 			}
 
-			if (room.status === 'OCCUPIED' && room.occupiedSlots >= room.maxOccupants) {
+			if (
+				room.status === 'OCCUPIED' &&
+				room.occupiedSlots >= room.maxOccupants
+			) {
 				throw new ConflictError('Room is already fully occupied');
 			}
 
@@ -223,15 +276,29 @@ export class ApplicationService {
 				entityType: 'Room',
 				entityId: room.id,
 				action: 'ROOM_OCCUPIED',
-				beforeState: { status: room.status, occupiedSlots: room.occupiedSlots, version: room.version },
-				afterState: { status: updatedRoom.status, occupiedSlots: updatedRoom.occupiedSlots, version: updatedRoom.version },
+				beforeState: {
+					status: room.status,
+					occupiedSlots: room.occupiedSlots,
+					version: room.version,
+				},
+				afterState: {
+					status: updatedRoom.status,
+					occupiedSlots: updatedRoom.occupiedSlots,
+					version: updatedRoom.version,
+				},
 			});
 
 			// 2. Create Lease
-			const leaseStartDate = input?.leaseStartDate ? new Date(input.leaseStartDate) : application.moveInDate;
+			const leaseStartDate = input?.leaseStartDate
+				? new Date(input.leaseStartDate)
+				: application.moveInDate;
 			const leaseEndDate = input?.leaseEndDate
 				? new Date(input.leaseEndDate)
-				: new Date(new Date(leaseStartDate).setFullYear(leaseStartDate.getFullYear() + 1));
+				: new Date(
+						new Date(leaseStartDate).setFullYear(
+							leaseStartDate.getFullYear() + 1,
+						),
+					);
 
 			const leaseId = crypto.randomUUID();
 			const lease = await txPrisma.Lease.create({
@@ -267,7 +334,9 @@ export class ApplicationService {
 			});
 
 			// 4. Update this application to APPROVED
-			const approvedApp = await txPrisma.Application.where({ id: applicationId }).update({
+			const approvedApp = await txPrisma.Application.where({
+				id: applicationId,
+			}).update({
 				status: 'APPROVED',
 				updatedAt: new Date(),
 			});
@@ -288,10 +357,15 @@ export class ApplicationService {
 				).all();
 
 				for (const compApp of competingApps) {
-					if (compApp.id !== applicationId && (compApp.status === 'SUBMITTED' || compApp.status === 'UNDER_REVIEW')) {
+					if (
+						compApp.id !== applicationId &&
+						(compApp.status === 'SUBMITTED' ||
+							compApp.status === 'UNDER_REVIEW')
+					) {
 						await txPrisma.Application.where({ id: compApp.id }).update({
 							status: 'REJECTED',
-							notes: 'Auto-rejected due to room occupancy filled by another applicant',
+							notes:
+								'Auto-rejected due to room occupancy filled by another applicant',
 							updatedAt: new Date(),
 						});
 
@@ -307,7 +381,8 @@ export class ApplicationService {
 							id: crypto.randomUUID(),
 							userId: compApp.tenantId,
 							title: 'Application Update',
-							message: 'The room you applied for has been occupied by another applicant.',
+							message:
+								'The room you applied for has been occupied by another applicant.',
 							category: 'APPLICATION',
 							channel: 'IN_APP',
 							isRead: false,

@@ -1,12 +1,24 @@
 import { BusinessRuleError, NotFoundError } from '../../lib/errors.ts';
-import { nowInstant, paginateResults, prisma, recordAuditLog, toInstant } from '../../lib/prisma.ts';
-import type { RoommateApprovalInput, UpsertProfileInput } from './roommate-matching.schemas.ts';
+import {
+	nowInstant,
+	paginateResults,
+	prisma,
+	recordAuditLog,
+	toInstant,
+} from '../../lib/prisma.ts';
+import type {
+	RoommateApprovalInput,
+	UpsertProfileInput,
+} from './roommate-matching.schemas.ts';
 
 export class RoommateMatchingService {
 	/**
 	 * Compute explainable compatibility score between two profiles
 	 */
-	calculateCompatibility(p1: any, p2: any): { score: number; breakdown: Record<string, number> } {
+	calculateCompatibility(
+		p1: any,
+		p2: any,
+	): { score: number; breakdown: Record<string, number> } {
 		let score = 0;
 		const breakdown: Record<string, number> = {
 			budget: 0,
@@ -50,7 +62,11 @@ export class RoommateMatchingService {
 
 		// 3. Sleep schedule (up to 15 pts)
 		if (p1.sleepSchedule && p2.sleepSchedule) {
-			if (p1.sleepSchedule === p2.sleepSchedule || p1.sleepSchedule === 'FLEXIBLE' || p2.sleepSchedule === 'FLEXIBLE') {
+			if (
+				p1.sleepSchedule === p2.sleepSchedule ||
+				p1.sleepSchedule === 'FLEXIBLE' ||
+				p2.sleepSchedule === 'FLEXIBLE'
+			) {
 				breakdown.sleep = 15;
 			} else {
 				breakdown.sleep = 5;
@@ -95,7 +111,9 @@ export class RoommateMatchingService {
 				pets: input.pets !== undefined ? input.pets : existing.pets,
 				cleanliness: input.cleanliness ?? existing.cleanliness,
 				bio: input.bio !== undefined ? input.bio : existing.bio,
-				moveInDate: input.moveInDate ? toInstant(input.moveInDate) : existing.moveInDate,
+				moveInDate: input.moveInDate
+					? toInstant(input.moveInDate)
+					: existing.moveInDate,
 				updatedAt: nowInstant(),
 			});
 		}
@@ -130,24 +148,36 @@ export class RoommateMatchingService {
 		};
 	}
 
-	async getMatches(currentUserId: string, query?: { cursor?: string; limit?: number }) {
+	async getMatches(
+		currentUserId: string,
+		query?: { cursor?: string; limit?: number },
+	) {
 		const limit = query?.limit || 20;
-		const myProfile = await prisma.RoommateProfile.first({ userId: currentUserId });
+		const myProfile = await prisma.RoommateProfile.first({
+			userId: currentUserId,
+		});
 		if (!myProfile) {
-			throw new BusinessRuleError('Please complete your roommate profile before viewing matches');
+			throw new BusinessRuleError(
+				'Please complete your roommate profile before viewing matches',
+			);
 		}
 
 		// Find other profiles
 		const otherProfiles = await prisma.RoommateProfile.where((p: any) =>
 			p.userId.neq(currentUserId),
-		).limit(100).all();
+		)
+			.limit(100)
+			.all();
 
 		const matches = [];
 		for (const other of otherProfiles) {
 			const user = await prisma.User.first({ id: other.userId });
-			if (!user || user.status !== 'ACTIVE') continue;
+			if (user?.status !== 'ACTIVE') continue;
 
-			const { score, breakdown } = this.calculateCompatibility(myProfile, other);
+			const { score, breakdown } = this.calculateCompatibility(
+				myProfile,
+				other,
+			);
 			matches.push({
 				id: other.id,
 				user: {
@@ -165,7 +195,11 @@ export class RoommateMatchingService {
 		return paginateResults(matches, limit);
 	}
 
-	async expressInterest(currentUserId: string, targetUserId: string, interested = true) {
+	async expressInterest(
+		currentUserId: string,
+		targetUserId: string,
+		interested = true,
+	) {
 		if (currentUserId === targetUserId) {
 			throw new BusinessRuleError('Cannot express interest in yourself');
 		}
@@ -182,7 +216,10 @@ export class RoommateMatchingService {
 		let match = await prisma.RoommateMatch.first({ user1Id: u1, user2Id: u2 });
 		const p1 = await prisma.RoommateProfile.first({ userId: u1 });
 		const p2 = await prisma.RoommateProfile.first({ userId: u2 });
-		const { score, breakdown } = (p1 && p2) ? this.calculateCompatibility(p1, p2) : { score: 50, breakdown: {} };
+		const { score, breakdown } =
+			p1 && p2
+				? this.calculateCompatibility(p1, p2)
+				: { score: 50, breakdown: {} };
 
 		if (!match) {
 			match = await prisma.RoommateMatch.create({
@@ -202,10 +239,17 @@ export class RoommateMatchingService {
 			const u2Interest = !isUser1 ? interested : match.user2Interest;
 			const isMutual = u1Interest && u2Interest;
 
-			match = await prisma.RoommateMatch.where({ user1Id: u1, user2Id: u2 }).update({
+			match = await prisma.RoommateMatch.where({
+				user1Id: u1,
+				user2Id: u2,
+			}).update({
 				user1Interest: u1Interest,
 				user2Interest: u2Interest,
-				status: isMutual ? 'MUTUAL_INTEREST' : (!u1Interest || !u2Interest ? 'DECLINED' : 'PENDING'),
+				status: isMutual
+					? 'MUTUAL_INTEREST'
+					: !u1Interest || !u2Interest
+						? 'DECLINED'
+						: 'PENDING',
 				updatedAt: nowInstant(),
 			});
 
@@ -230,7 +274,10 @@ export class RoommateMatchingService {
 					category: 'MATCH',
 					channel: 'IN_APP',
 					isRead: false,
-					data: JSON.stringify({ matchId: match.id, targetUserId: currentUserId }),
+					data: JSON.stringify({
+						matchId: match.id,
+						targetUserId: currentUserId,
+					}),
 					createdAt: nowInstant(),
 				});
 			}
@@ -239,7 +286,11 @@ export class RoommateMatchingService {
 		return match;
 	}
 
-	async approveRoommate(roomId: string, input: RoommateApprovalInput, approverId: string) {
+	async approveRoommate(
+		roomId: string,
+		input: RoommateApprovalInput,
+		approverId: string,
+	) {
 		const room = await prisma.Room.first({ id: roomId });
 		if (!room) {
 			throw new NotFoundError('Room not found');
@@ -247,7 +298,9 @@ export class RoommateMatchingService {
 
 		const property = await prisma.Property.first({ id: room.propertyId });
 		if (property && !property.requiresRoommateApproval) {
-			console.log(`[RoommateApproval] Property ${property.id} does not require roommate approval.`);
+			console.log(
+				`[RoommateApproval] Property ${property.id} does not require roommate approval.`,
+			);
 		}
 
 		const approval = await prisma.RoommateApproval.create({

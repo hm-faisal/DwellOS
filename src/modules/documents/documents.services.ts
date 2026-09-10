@@ -1,9 +1,16 @@
 import { BusinessRuleError, NotFoundError } from '../../lib/errors.ts';
 import { db, nowInstant, prisma, recordAuditLog } from '../../lib/prisma.ts';
-import type { SignDocumentInput, UploadDocumentInput } from './documents.schemas.ts';
+import type {
+	SignDocumentInput,
+	UploadDocumentInput,
+} from './documents.schemas.ts';
 
 export class DocumentService {
-	async createDocument(leaseId: string, input: UploadDocumentInput, actorId: string) {
+	async createDocument(
+		leaseId: string,
+		input: UploadDocumentInput,
+		actorId: string,
+	) {
 		const lease = await prisma.Lease.first({ id: leaseId });
 		if (!lease) throw new NotFoundError('Lease not found');
 
@@ -35,7 +42,9 @@ export class DocumentService {
 		const doc = await prisma.RentalDocument.first({ id });
 		if (!doc) throw new NotFoundError('Document not found');
 
-		const signatures = await prisma.DocumentSignature.where({ documentId: id }).all();
+		const signatures = await prisma.DocumentSignature.where({
+			documentId: id,
+		}).all();
 
 		// Record view audit event
 		await prisma.DocumentAuditLog.create({
@@ -53,7 +62,12 @@ export class DocumentService {
 		};
 	}
 
-	async signDocument(id: string, input: SignDocumentInput | undefined, signerId: string, ipAddress?: string) {
+	async signDocument(
+		id: string,
+		input: SignDocumentInput | undefined,
+		signerId: string,
+		ipAddress?: string,
+	) {
 		return await db.transaction(async (tx) => {
 			const txPrisma = ((tx.orm as any).public ?? tx.orm) as any;
 			const doc = await txPrisma.RentalDocument.first({ id });
@@ -70,17 +84,22 @@ export class DocumentService {
 			});
 
 			if (existingSignature && existingSignature.status === 'SIGNED') {
-				return { message: 'Document already signed by you', signature: existingSignature };
+				return {
+					message: 'Document already signed by you',
+					signature: existingSignature,
+				};
 			}
 
 			const signature = existingSignature
-				? await txPrisma.DocumentSignature.where({ id: existingSignature.id }).update({
+				? await txPrisma.DocumentSignature.where({
+						id: existingSignature.id,
+					}).update({
 						signatureUrl: input?.signatureUrl ?? null,
 						signedAt: nowInstant(),
 						ipAddress: ipAddress ?? null,
 						status: 'SIGNED',
 						updatedAt: nowInstant(),
-				  })
+					})
 				: await txPrisma.DocumentSignature.create({
 						id: crypto.randomUUID(),
 						documentId: id,
@@ -91,7 +110,7 @@ export class DocumentService {
 						status: 'SIGNED',
 						createdAt: nowInstant(),
 						updatedAt: nowInstant(),
-				  });
+					});
 
 			// Log document audit event
 			await txPrisma.DocumentAuditLog.create({
@@ -105,11 +124,17 @@ export class DocumentService {
 
 			// Check total signatures required (tenants on lease + owner)
 			const lease = await txPrisma.Lease.first({ id: doc.leaseId });
-			const tenants = lease ? await txPrisma.LeaseTenant.where({ leaseId: lease.id }).all() : [];
+			const tenants = lease
+				? await txPrisma.LeaseTenant.where({ leaseId: lease.id }).all()
+				: [];
 			const totalRequired = tenants.length + 1; // tenants + owner
 
-			const allSignatures = await txPrisma.DocumentSignature.where({ documentId: id, status: 'SIGNED' }).all();
-			const newStatus = allSignatures.length >= totalRequired ? 'EXECUTED' : 'PARTIALLY_SIGNED';
+			const allSignatures = await txPrisma.DocumentSignature.where({
+				documentId: id,
+				status: 'SIGNED',
+			}).all();
+			const newStatus =
+				allSignatures.length >= totalRequired ? 'EXECUTED' : 'PARTIALLY_SIGNED';
 
 			const updatedDoc = await txPrisma.RentalDocument.where({ id }).update({
 				status: newStatus,
@@ -145,7 +170,9 @@ export class DocumentService {
 			const actor = await prisma.User.first({ id: log.actorId });
 			results.push({
 				...log,
-				actor: actor ? { id: actor.id, name: actor.name, email: actor.email } : null,
+				actor: actor
+					? { id: actor.id, name: actor.name, email: actor.email }
+					: null,
 			});
 		}
 

@@ -17,10 +17,16 @@ export async function sendRemindersJob(): Promise<void> {
 
 		for (const invoice of dueInvoices) {
 			const dueDate = new Date(invoice.dueDate);
-			const gracePeriodEnd = new Date(dueDate.getTime() + (invoice.gracePeriodDays || 5) * 24 * 60 * 60 * 1000);
+			const gracePeriodEnd = new Date(
+				dueDate.getTime() +
+					(invoice.gracePeriodDays || 5) * 24 * 60 * 60 * 1000,
+			);
 
 			// If grace period has passed, transition status to OVERDUE
-			if (currentTime > gracePeriodEnd.getTime() && invoice.status !== 'OVERDUE') {
+			if (
+				currentTime > gracePeriodEnd.getTime() &&
+				invoice.status !== 'OVERDUE'
+			) {
 				const lateFee = invoice.lateFee || 5000; // $50 default late fee in cents
 				await txPrisma.RentInvoice.where({ id: invoice.id }).update({
 					status: 'OVERDUE',
@@ -38,7 +44,9 @@ export async function sendRemindersJob(): Promise<void> {
 				});
 
 				// Send overdue notification
-				const leaseTenants = await txPrisma.LeaseTenant.where({ leaseId: invoice.leaseId }).all();
+				const leaseTenants = await txPrisma.LeaseTenant.where({
+					leaseId: invoice.leaseId,
+				}).all();
 				for (const lt of leaseTenants) {
 					await txPrisma.Notification.create({
 						id: crypto.randomUUID(),

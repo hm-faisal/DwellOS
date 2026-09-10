@@ -30,7 +30,10 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
 const getMatches = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user!;
 	const query = req.query;
-	const result = await roommateMatchingService.getMatches(user.id, query as any);
+	const result = await roommateMatchingService.getMatches(
+		user.id,
+		query as any,
+	);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
@@ -82,14 +85,14 @@ export const RoommateMatchingController = {
 };
 
 export {
-	upsertProfile,
-	getProfile,
-	getMatches,
 	expressInterest,
-	roommateApproval,
-	upsertProfile as upsertProfileHandler,
-	getProfile as getProfileHandler,
-	getMatches as getMatchesHandler,
 	expressInterest as expressInterestHandler,
+	getMatches,
+	getMatches as getMatchesHandler,
+	getProfile,
+	getProfile as getProfileHandler,
+	roommateApproval,
 	roommateApproval as roommateApprovalHandler,
+	upsertProfile,
+	upsertProfile as upsertProfileHandler,
 };

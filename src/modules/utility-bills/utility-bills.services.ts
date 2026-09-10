@@ -1,9 +1,18 @@
 import { BusinessRuleError, NotFoundError } from '../../lib/errors.ts';
-import { db, paginateResults, prisma, recordAuditLog } from '../../lib/prisma.ts';
+import {
+	db,
+	paginateResults,
+	prisma,
+	recordAuditLog,
+} from '../../lib/prisma.ts';
 import type { CreateUtilityBillInput } from './utility-bills.schemas.ts';
 
 export class UtilityBillService {
-	async createBill(propertyId: string, input: CreateUtilityBillInput, actorId: string) {
+	async createBill(
+		propertyId: string,
+		input: CreateUtilityBillInput,
+		actorId: string,
+	) {
 		const property = await prisma.Property.first({ id: propertyId });
 		if (!property) throw new NotFoundError('Property not found');
 
@@ -27,7 +36,11 @@ export class UtilityBillService {
 			});
 
 			// Determine active tenants on property during the period
-			let sharesToCreate: Array<{ tenantId: string; amount: number; daysOccupied: number }> = [];
+			let sharesToCreate: Array<{
+				tenantId: string;
+				amount: number;
+				daysOccupied: number;
+			}> = [];
 
 			if (input.customShares && input.customShares.length > 0) {
 				sharesToCreate = input.customShares;
@@ -35,12 +48,16 @@ export class UtilityBillService {
 				// Find all active leases for rooms on this property
 				const rooms = await txPrisma.Room.where({ propertyId }).all();
 				const roomIds = rooms.map((r: any) => r.id);
-				const leases = await txPrisma.Lease.where((l: any) => l.roomId.in(roomIds)).all();
+				const leases = await txPrisma.Lease.where((l: any) =>
+					l.roomId.in(roomIds),
+				).all();
 				const activeLeases = leases.filter((l: any) => l.status === 'ACTIVE');
 
 				const tenantIds: string[] = [];
 				for (const lease of activeLeases) {
-					const leaseTenants = await txPrisma.LeaseTenant.where({ leaseId: lease.id }).all();
+					const leaseTenants = await txPrisma.LeaseTenant.where({
+						leaseId: lease.id,
+					}).all();
 					for (const lt of leaseTenants) {
 						if (!tenantIds.includes(lt.tenantId)) {
 							tenantIds.push(lt.tenantId);
@@ -49,7 +66,9 @@ export class UtilityBillService {
 				}
 
 				if (tenantIds.length === 0) {
-					throw new BusinessRuleError('No active tenants found on property to split the bill');
+					throw new BusinessRuleError(
+						'No active tenants found on property to split the bill',
+					);
 				}
 
 				// Exact integer cents division (avoiding floats)
@@ -111,7 +130,10 @@ export class UtilityBillService {
 		});
 	}
 
-	async listBillsByProperty(propertyId: string, query?: { cursor?: string; limit?: number; category?: string }) {
+	async listBillsByProperty(
+		propertyId: string,
+		query?: { cursor?: string; limit?: number; category?: string },
+	) {
 		const limit = query?.limit || 20;
 		let q = prisma.UtilityBill.where({ propertyId });
 
@@ -156,7 +178,9 @@ export class UtilityBillService {
 			const tenant = await prisma.User.first({ id: share.tenantId });
 			results.push({
 				...share,
-				tenant: tenant ? { id: tenant.id, name: tenant.name, email: tenant.email } : null,
+				tenant: tenant
+					? { id: tenant.id, name: tenant.name, email: tenant.email }
+					: null,
 			});
 		}
 

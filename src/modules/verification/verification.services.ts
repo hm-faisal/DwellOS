@@ -1,6 +1,9 @@
 import { NotFoundError } from '../../lib/errors.ts';
 import { prisma, recordAuditLog } from '../../lib/prisma.ts';
-import type { SubmitVerificationInput, UpdateVerificationInput } from './verification.schemas.ts';
+import type {
+	SubmitVerificationInput,
+	UpdateVerificationInput,
+} from './verification.schemas.ts';
 
 export class VerificationService {
 	async submitVerification(userId: string, input: SubmitVerificationInput) {
@@ -35,18 +38,28 @@ export class VerificationService {
 			.all();
 	}
 
-	async getVerifications(user: { id: string; role: string }, query?: any) {
+	async getVerifications(user: { id: string; role: string }, _query?: any) {
 		if (user.role === 'ADMIN') {
-			return await prisma.Verification.orderBy((v: any) => v.createdAt.desc()).all();
+			return await prisma.Verification.orderBy((v: any) =>
+				v.createdAt.desc(),
+			).all();
 		}
 		return await this.getVerificationsByUser(user.id);
 	}
 
-	async reviewVerification(id: string, input: UpdateVerificationInput, reviewerId: string) {
+	async reviewVerification(
+		id: string,
+		input: UpdateVerificationInput,
+		reviewerId: string,
+	) {
 		return await this.updateStatus(id, input, reviewerId);
 	}
 
-	async updateStatus(id: string, input: UpdateVerificationInput, reviewerId: string) {
+	async updateStatus(
+		id: string,
+		input: UpdateVerificationInput,
+		reviewerId: string,
+	) {
 		const verification = await prisma.Verification.first({ id });
 		if (!verification) {
 			throw new NotFoundError('Verification record not found');

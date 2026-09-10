@@ -62,12 +62,10 @@ export const createApp = (): Application => {
 			res.setHeader('Content-Type', 'application/json');
 			res.send(fs.readFileSync(collectionPath, 'utf8'));
 		} else {
-			res
-				.status(404)
-				.json({
-					data: null,
-					error: { code: 'NOT_FOUND', message: 'Postman collection not found' },
-				});
+			res.status(404).json({
+				data: null,
+				error: { code: 'NOT_FOUND', message: 'Postman collection not found' },
+			});
 		}
 	});
 
@@ -77,15 +75,13 @@ export const createApp = (): Application => {
 			res.setHeader('Content-Type', 'application/json');
 			res.send(fs.readFileSync(envPath, 'utf8'));
 		} else {
-			res
-				.status(404)
-				.json({
-					data: null,
-					error: {
-						code: 'NOT_FOUND',
-						message: 'Postman environment not found',
-					},
-				});
+			res.status(404).json({
+				data: null,
+				error: {
+					code: 'NOT_FOUND',
+					message: 'Postman environment not found',
+				},
+			});
 		}
 	});
 

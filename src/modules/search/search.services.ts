@@ -1,6 +1,14 @@
 import { NotFoundError } from '../../lib/errors.ts';
-import { nowInstant, paginateResults, prisma, toInstant } from '../../lib/prisma.ts';
-import type { CreateSavedSearchInput, SearchPropertiesQuery } from './search.schemas.ts';
+import {
+	nowInstant,
+	paginateResults,
+	prisma,
+	toInstant,
+} from '../../lib/prisma.ts';
+import type {
+	CreateSavedSearchInput,
+	SearchPropertiesQuery,
+} from './search.schemas.ts';
 
 export class SearchService {
 	async searchProperties(query?: SearchPropertiesQuery) {
@@ -9,17 +17,19 @@ export class SearchService {
 
 		if (query?.location) {
 			const loc = query.location;
-			propertyQuery = propertyQuery.where((p: any) =>
-				p.city.ilike(`%${loc}%`),
-			);
+			propertyQuery = propertyQuery.where((p: any) => p.city.ilike(`%${loc}%`));
 		}
 
-		propertyQuery = propertyQuery.orderBy((p: any) => p.createdAt.desc()).limit(limit + 1);
+		propertyQuery = propertyQuery
+			.orderBy((p: any) => p.createdAt.desc())
+			.limit(limit + 1);
 
 		if (query?.cursor) {
 			const cursorRecord = await prisma.Property.first({ id: query.cursor });
 			if (cursorRecord) {
-				propertyQuery = propertyQuery.cursor({ createdAt: cursorRecord.createdAt });
+				propertyQuery = propertyQuery.cursor({
+					createdAt: cursorRecord.createdAt,
+				});
 			}
 		}
 
@@ -29,13 +39,22 @@ export class SearchService {
 		const filteredProperties = [];
 		for (const prop of properties) {
 			if (query?.amenities) {
-				const requestedAmenities = query.amenities.split(',').map((a) => a.trim().toLowerCase());
-				const propAmenities = prop.amenities.map((a: string) => a.toLowerCase());
-				const matches = requestedAmenities.every((a) => propAmenities.includes(a));
+				const requestedAmenities = query.amenities
+					.split(',')
+					.map((a) => a.trim().toLowerCase());
+				const propAmenities = prop.amenities.map((a: string) =>
+					a.toLowerCase(),
+				);
+				const matches = requestedAmenities.every((a) =>
+					propAmenities.includes(a),
+				);
 				if (!matches) continue;
 			}
 
-			let roomQuery = prisma.Room.where({ propertyId: prop.id, status: 'AVAILABLE' });
+			let roomQuery = prisma.Room.where({
+				propertyId: prop.id,
+				status: 'AVAILABLE',
+			});
 			if (query?.roomType) {
 				roomQuery = roomQuery.where({ type: query.roomType });
 			}
@@ -47,7 +66,10 @@ export class SearchService {
 			}
 
 			const matchingRooms = await roomQuery.all();
-			if (matchingRooms.length > 0 || (!query?.priceMin && !query?.priceMax && !query?.roomType)) {
+			if (
+				matchingRooms.length > 0 ||
+				(!query?.priceMin && !query?.priceMax && !query?.roomType)
+			) {
 				filteredProperties.push({
 					...prop,
 					availableRooms: matchingRooms,

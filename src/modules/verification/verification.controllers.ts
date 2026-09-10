@@ -28,18 +28,24 @@ const getVerifications = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-const updateVerificationStatus = catchAsync(async (req: Request, res: Response) => {
-	const id = req.params.id as string;
-	const payload = req.body;
-	const user = req.user!;
-	const result = await verificationService.reviewVerification(id, payload, user.id);
-	sendResponse(res, {
-		statusCode: httpStatus.OK,
-		success: true,
-		message: 'Verification review status updated successfully',
-		data: result,
-	});
-});
+const updateVerificationStatus = catchAsync(
+	async (req: Request, res: Response) => {
+		const id = req.params.id as string;
+		const payload = req.body;
+		const user = req.user!;
+		const result = await verificationService.reviewVerification(
+			id,
+			payload,
+			user.id,
+		);
+		sendResponse(res, {
+			statusCode: httpStatus.OK,
+			success: true,
+			message: 'Verification review status updated successfully',
+			data: result,
+		});
+	},
+);
 
 export const VerificationController = {
 	submitVerification,
@@ -48,10 +54,10 @@ export const VerificationController = {
 };
 
 export {
-	submitVerification,
 	getVerifications,
-	updateVerificationStatus,
-	submitVerification as submitVerificationHandler,
 	getVerifications as getVerificationsHandler,
+	submitVerification,
+	submitVerification as submitVerificationHandler,
+	updateVerificationStatus,
 	updateVerificationStatus as updateVerificationStatusHandler,
 };

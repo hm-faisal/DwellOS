@@ -7,7 +7,11 @@ import type {
 } from './maintenance.schemas.ts';
 
 export class MaintenanceService {
-	async createRequest(roomId: string, input: CreateMaintenanceInput, requesterId: string) {
+	async createRequest(
+		roomId: string,
+		input: CreateMaintenanceInput,
+		requesterId: string,
+	) {
 		const room = await prisma.Room.first({ id: roomId });
 		if (!room) throw new NotFoundError('Room not found');
 
@@ -56,7 +60,15 @@ export class MaintenanceService {
 		return request;
 	}
 
-	async listRequests(user: { id: string; role: string }, query?: { roomId?: string; cursor?: string; limit?: number; status?: string }) {
+	async listRequests(
+		user: { id: string; role: string },
+		query?: {
+			roomId?: string;
+			cursor?: string;
+			limit?: number;
+			status?: string;
+		},
+	) {
 		const limit = query?.limit || 20;
 		let q = prisma.MaintenanceRequest;
 
@@ -73,7 +85,9 @@ export class MaintenanceService {
 		q = q.orderBy((m: any) => m.createdAt.desc()).limit(limit + 1);
 
 		if (query?.cursor) {
-			const cursorRecord = await prisma.MaintenanceRequest.first({ id: query.cursor });
+			const cursorRecord = await prisma.MaintenanceRequest.first({
+				id: query.cursor,
+			});
 			if (cursorRecord) {
 				q = q.cursor({ createdAt: cursorRecord.createdAt });
 			}
@@ -89,21 +103,34 @@ export class MaintenanceService {
 
 		const room = await prisma.Room.first({ id: request.roomId });
 		const requester = await prisma.User.first({ id: request.requesterId });
-		const assignedTo = request.assignedToId ? await prisma.User.first({ id: request.assignedToId }) : null;
+		const assignedTo = request.assignedToId
+			? await prisma.User.first({ id: request.assignedToId })
+			: null;
 
 		return {
 			...request,
 			room,
-			requester: requester ? { id: requester.id, name: requester.name, email: requester.email } : null,
-			assignedTo: assignedTo ? { id: assignedTo.id, name: assignedTo.name, email: assignedTo.email } : null,
+			requester: requester
+				? { id: requester.id, name: requester.name, email: requester.email }
+				: null,
+			assignedTo: assignedTo
+				? { id: assignedTo.id, name: assignedTo.name, email: assignedTo.email }
+				: null,
 		};
 	}
 
-	async updateRequest(id: string, input: UpdateMaintenanceInput, actorId: string) {
+	async updateRequest(
+		id: string,
+		input: UpdateMaintenanceInput,
+		actorId: string,
+	) {
 		const request = await prisma.MaintenanceRequest.first({ id });
 		if (!request) throw new NotFoundError('Maintenance request not found');
 
-		const resolvedAt = input.status === 'RESOLVED' && !request.resolvedAt ? new Date() : request.resolvedAt;
+		const resolvedAt =
+			input.status === 'RESOLVED' && !request.resolvedAt
+				? new Date()
+				: request.resolvedAt;
 
 		const updated = await prisma.MaintenanceRequest.where({ id }).update({
 			status: input.status ?? request.status,
@@ -118,8 +145,14 @@ export class MaintenanceService {
 			entityType: 'MaintenanceRequest',
 			entityId: id,
 			action: `MAINTENANCE_${input.status || 'UPDATE'}`,
-			beforeState: { status: request.status, assignedToId: request.assignedToId },
-			afterState: { status: updated.status, assignedToId: updated.assignedToId },
+			beforeState: {
+				status: request.status,
+				assignedToId: request.assignedToId,
+			},
+			afterState: {
+				status: updated.status,
+				assignedToId: updated.assignedToId,
+			},
 		});
 
 		// Notify tenant
@@ -140,16 +173,24 @@ export class MaintenanceService {
 		return updated;
 	}
 
-	async rateRequest(id: string, input: RateMaintenanceInput, requesterId: string) {
+	async rateRequest(
+		id: string,
+		input: RateMaintenanceInput,
+		requesterId: string,
+	) {
 		const request = await prisma.MaintenanceRequest.first({ id });
 		if (!request) throw new NotFoundError('Maintenance request not found');
 
 		if (request.requesterId !== requesterId) {
-			throw new BusinessRuleError('Only the requester can rate this maintenance resolution');
+			throw new BusinessRuleError(
+				'Only the requester can rate this maintenance resolution',
+			);
 		}
 
 		if (request.status !== 'RESOLVED' && request.status !== 'CLOSED') {
-			throw new BusinessRuleError('Can only rate resolved or closed maintenance requests');
+			throw new BusinessRuleError(
+				'Can only rate resolved or closed maintenance requests',
+			);
 		}
 
 		const updated = await prisma.MaintenanceRequest.where({ id }).update({

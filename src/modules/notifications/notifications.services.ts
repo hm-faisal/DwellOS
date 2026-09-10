@@ -3,7 +3,10 @@ import { nowInstant, paginateResults, prisma } from '../../lib/prisma.ts';
 import type { UpdatePreferencesInput } from './notifications.schemas.ts';
 
 export class NotificationService {
-	async getNotifications(userId: string, query?: { cursor?: string; limit?: number; unreadOnly?: string }) {
+	async getNotifications(
+		userId: string,
+		query?: { cursor?: string; limit?: number; unreadOnly?: string },
+	) {
 		const limit = query?.limit || 20;
 		let q = prisma.Notification.where({ userId });
 
@@ -14,7 +17,9 @@ export class NotificationService {
 		q = q.orderBy((n: any) => n.createdAt.desc()).limit(limit + 1);
 
 		if (query?.cursor) {
-			const cursorRecord = await prisma.Notification.first({ id: query.cursor });
+			const cursorRecord = await prisma.Notification.first({
+				id: query.cursor,
+			});
 			if (cursorRecord) {
 				q = q.cursor({ createdAt: cursorRecord.createdAt });
 			}
@@ -63,7 +68,9 @@ export class NotificationService {
 				pushEnabled: input.pushEnabled ?? true,
 				smsEnabled: input.smsEnabled ?? false,
 				inAppEnabled: input.inAppEnabled ?? true,
-				preferences: input.preferences ? JSON.stringify(input.preferences) : null,
+				preferences: input.preferences
+					? JSON.stringify(input.preferences)
+					: null,
 				createdAt: nowInstant(),
 				updatedAt: nowInstant(),
 			});
@@ -75,7 +82,9 @@ export class NotificationService {
 			pushEnabled: input.pushEnabled ?? prefs.pushEnabled,
 			smsEnabled: input.smsEnabled ?? prefs.smsEnabled,
 			inAppEnabled: input.inAppEnabled ?? prefs.inAppEnabled,
-			preferences: input.preferences ? JSON.stringify(input.preferences) : prefs.preferences,
+			preferences: input.preferences
+				? JSON.stringify(input.preferences)
+				: prefs.preferences,
 			updatedAt: nowInstant(),
 		});
 	}
