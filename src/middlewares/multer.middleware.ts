@@ -1,11 +1,11 @@
 import type { NextFunction, Request, Response } from 'express';
-import { uploadMulterFile } from '../libs/cloudinary.ts';
+import { uploadMulterFile } from '../lib/cloudinary.ts';
 import {
 	anyFileUpload,
 	createUploadMiddleware,
 	documentUpload,
 	imageUpload,
-} from '../libs/multer.ts';
+} from '../lib/multer.ts';
 
 export { anyFileUpload, createUploadMiddleware, documentUpload, imageUpload };
 

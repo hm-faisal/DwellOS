@@ -13,7 +13,7 @@ import {
 } from '../../lib/errors.ts';
 import { nowInstant, prisma } from '../../lib/prisma.ts';
 import { getOrCreateStripeCustomer } from '../../lib/stripe-client.ts';
-import { getRedisClient } from '../../libs/redis.ts';
+import { getRedisClient } from '../../lib/redis.ts';
 import type {
 	LoginInput,
 	RefreshTokenInput,

@@ -6,7 +6,7 @@ import app from './app.ts';
 import { envConfig } from './config/index.ts';
 import { registerAllJobs } from './jobs/index.ts';
 import { scheduler } from './lib/queue.ts';
-import { connectRedis, disconnectRedis } from './libs/redis.ts';
+import { connectRedis, disconnectRedis } from './lib/redis.ts';
 import { connectDatabase } from './prisma/db.ts';
 
 let server: Server | null = null;

@@ -1,9 +1,9 @@
 import process from 'node:process';
 import { envConfig } from '../../config/index.ts';
-import { pingCloudinary } from '../../libs/cloudinary.ts';
+import { pingCloudinary } from '../../lib/cloudinary.ts';
 import { connectDatabase } from '../../prisma/db.ts';
-import { verifyEmailConnection } from '../../libs/nodemailer.ts';
-import { redisService } from '../../libs/redis.ts';
+import { verifyEmailConnection } from '../../lib/nodemailer.ts';
+import { redisService } from '../../lib/redis.ts';
 
 export interface SystemHealth {
 	status: 'ok' | 'degraded' | 'error';

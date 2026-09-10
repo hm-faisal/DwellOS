@@ -1,4 +1,4 @@
-import { getRedisClient } from '../libs/redis.ts';
+import { getRedisClient } from './redis.ts';
 
 export type JobHandler = () => Promise<void>;
 

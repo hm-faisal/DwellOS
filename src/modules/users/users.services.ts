@@ -1,6 +1,6 @@
 import { NotFoundError } from '../../lib/errors.ts';
 import { nowInstant, prisma, recordAuditLog } from '../../lib/prisma.ts';
-import { getRedisClient } from '../../libs/redis.ts';
+import { getRedisClient } from '../../lib/redis.ts';
 import type { UpdateUserInput } from './users.schemas.ts';
 
 export class UserService {
