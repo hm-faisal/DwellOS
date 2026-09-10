@@ -7,6 +7,7 @@ import {
 	getVerificationsParamSchema,
 	submitVerificationSchema,
 	updateVerificationStatusSchema,
+	verificationIdParamSchema,
 } from './verification.schemas.ts';
 
 const router = Router();
@@ -18,15 +19,32 @@ router.post(
 	VerificationController.submitVerification,
 );
 
+router.get('/', authenticate, VerificationController.getVerifications);
+
 router.get(
-	'/:userId',
+	'/user/:userId',
 	authenticate,
 	validateRequest(getVerificationsParamSchema),
 	VerificationController.getVerifications,
 );
 
+router.get(
+	'/:id',
+	authenticate,
+	validateRequest(verificationIdParamSchema),
+	VerificationController.getVerificationById,
+);
+
 router.patch(
 	'/:id',
+	authenticate,
+	requireRoles('ADMIN'),
+	validateRequest(updateVerificationStatusSchema),
+	VerificationController.updateVerificationStatus,
+);
+
+router.patch(
+	'/:id/review',
 	authenticate,
 	requireRoles('ADMIN'),
 	validateRequest(updateVerificationStatusSchema),

@@ -1,4 +1,4 @@
-import { NotFoundError } from '../../lib/errors.ts';
+import { ForbiddenError, NotFoundError } from '../../lib/errors.ts';
 import { prisma, recordAuditLog } from '../../lib/prisma.ts';
 import type {
 	SubmitVerificationInput,
@@ -45,6 +45,19 @@ export class VerificationService {
 			).all();
 		}
 		return await this.getVerificationsByUser(user.id);
+	}
+
+	async getVerificationById(id: string, user: { id: string; role: string }) {
+		const verification = await prisma.Verification.first({ id });
+		if (!verification) {
+			throw new NotFoundError('Verification record not found');
+		}
+		if (user.role !== 'ADMIN' && verification.userId !== user.id) {
+			throw new ForbiddenError(
+				'You do not have permission to view this verification record',
+			);
+		}
+		return verification;
 	}
 
 	async reviewVerification(

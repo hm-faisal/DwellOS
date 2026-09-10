@@ -33,10 +33,38 @@ export const createPropertySchema = z.object({
 			longitude: z.number().min(-180).max(180).optional(),
 			description: z.string().trim().max(5000).optional(),
 			amenities: z.array(z.string().trim().min(1).max(100)).default([]),
-			photos: z.array(z.string().trim().min(1)).default([]),
+			photos: z.array(z.string().trim().min(1)).optional(),
+			images: z.array(z.string().trim().min(1)).optional(),
+			houseRules: z.array(z.string().trim()).optional(),
 			requiresRoommateApproval: z.boolean().default(false),
 		})
-		.strict(),
+		.passthrough()
+		.transform((val) => {
+			const photos =
+				val.photos && val.photos.length > 0 ? val.photos : (val.images ?? []);
+			let description = val.description;
+			if (val.houseRules && val.houseRules.length > 0) {
+				const rulesText = `House Rules:\n- ${val.houseRules.join('\n- ')}`;
+				description = description
+					? `${description}\n\n${rulesText}`
+					: rulesText;
+			}
+			return {
+				name: val.name,
+				type: val.type,
+				address: val.address,
+				city: val.city,
+				state: val.state,
+				zipCode: val.zipCode,
+				country: val.country,
+				latitude: val.latitude,
+				longitude: val.longitude,
+				description,
+				amenities: val.amenities,
+				photos,
+				requiresRoommateApproval: val.requiresRoommateApproval,
+			};
+		}),
 });
 
 export const updatePropertySchema = z.object({
@@ -44,7 +72,7 @@ export const updatePropertySchema = z.object({
 		.object({
 			id: z.string().trim().min(1, 'Property ID is required'),
 		})
-		.strict(),
+		.passthrough(),
 	body: z
 		.object({
 			name: z.string().trim().min(2).max(200).optional(),
@@ -61,11 +89,40 @@ export const updatePropertySchema = z.object({
 			description: z.string().trim().max(5000).optional(),
 			amenities: z.array(z.string().trim().min(1).max(100)).optional(),
 			photos: z.array(z.string().trim().min(1)).optional(),
+			images: z.array(z.string().trim().min(1)).optional(),
+			houseRules: z.array(z.string().trim()).optional(),
 			status: z.enum(['ACTIVE', 'ARCHIVED']).optional(),
 			requiresRoommateApproval: z.boolean().optional(),
 			stripeAccountId: z.string().trim().max(100).optional(),
 		})
-		.strict(),
+		.passthrough()
+		.transform((val) => {
+			const photos = val.photos !== undefined ? val.photos : val.images;
+			let description = val.description;
+			if (val.houseRules && val.houseRules.length > 0) {
+				const rulesText = `House Rules:\n- ${val.houseRules.join('\n- ')}`;
+				description = description
+					? `${description}\n\n${rulesText}`
+					: rulesText;
+			}
+			return {
+				name: val.name,
+				type: val.type,
+				address: val.address,
+				city: val.city,
+				state: val.state,
+				zipCode: val.zipCode,
+				country: val.country,
+				latitude: val.latitude,
+				longitude: val.longitude,
+				description,
+				amenities: val.amenities,
+				...(photos !== undefined ? { photos } : {}),
+				status: val.status,
+				requiresRoommateApproval: val.requiresRoommateApproval,
+				stripeAccountId: val.stripeAccountId,
+			};
+		}),
 });
 
 export const listPropertiesQuerySchema = z.object({
@@ -76,7 +133,7 @@ export const listPropertiesQuerySchema = z.object({
 			city: z.string().trim().max(100).optional(),
 			ownerOnly: z.enum(['true', 'false']).optional(),
 		})
-		.strict()
+		.passthrough()
 		.optional(),
 });
 
@@ -85,7 +142,7 @@ export const propertyIdParamSchema = z.object({
 		.object({
 			id: z.string().trim().min(1, 'Property ID is required'),
 		})
-		.strict(),
+		.passthrough(),
 });
 
 export const addManagerSchema = z.object({
@@ -93,7 +150,7 @@ export const addManagerSchema = z.object({
 		.object({
 			id: z.string().trim().min(1, 'Property ID is required'),
 		})
-		.strict(),
+		.passthrough(),
 	body: z
 		.object({
 			userId: z.string().trim().min(1, 'User ID is required'),
@@ -101,7 +158,7 @@ export const addManagerSchema = z.object({
 				.array(z.string().trim().min(1).max(100))
 				.default(['MANAGE_ROOMS', 'MANAGE_APPLICATIONS', 'MANAGE_MAINTENANCE']),
 		})
-		.strict(),
+		.passthrough(),
 });
 
 export const removeManagerSchema = z.object({
@@ -110,7 +167,7 @@ export const removeManagerSchema = z.object({
 			id: z.string().trim().min(1, 'Property ID is required'),
 			userId: z.string().trim().min(1, 'User ID is required'),
 		})
-		.strict(),
+		.passthrough(),
 });
 
 export type CreatePropertyInput = z.infer<typeof createPropertySchema>['body'];

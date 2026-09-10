@@ -1366,7 +1366,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"idType\": \"PASSPORT\",\n  \"idDocumentUrl\": \"https://storage.dwellos.io/verify/passport.pdf\",\n  \"incomeProofUrl\": \"https://storage.dwellos.io/verify/paystub_august.pdf\"\n}"
+              "raw": "{\n  \"type\": \"IDENTITY\",\n  \"documentUrl\": \"https://storage.dwellos.io/verify/passport.pdf\",\n  \"notes\": \"Passport verification for KYC\",\n  \"data\": {\n    \"idType\": \"PASSPORT\",\n    \"incomeProofUrl\": \"https://storage.dwellos.io/verify/paystub_august.pdf\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/verifications",

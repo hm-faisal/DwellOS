@@ -47,13 +47,28 @@ const updateVerificationStatus = catchAsync(
 	},
 );
 
+const getVerificationById = catchAsync(async (req: Request, res: Response) => {
+	const id = req.params.id as string;
+	const user = req.user!;
+	const result = await verificationService.getVerificationById(id, user);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: 'Verification retrieved successfully',
+		data: result,
+	});
+});
+
 export const VerificationController = {
 	submitVerification,
 	getVerifications,
+	getVerificationById,
 	updateVerificationStatus,
 };
 
 export {
+	getVerificationById,
+	getVerificationById as getVerificationByIdHandler,
 	getVerifications,
 	getVerifications as getVerificationsHandler,
 	submitVerification,
