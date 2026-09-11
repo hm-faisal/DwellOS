@@ -70,6 +70,36 @@
       "key": "targetUserId",
       "value": "44444444-4444-4444-8444-444444444444",
       "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@dwellos.io",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "AdminPassword123!",
+      "type": "string"
+    },
+    {
+      "key": "ownerEmail",
+      "value": "owner@dwellos.io",
+      "type": "string"
+    },
+    {
+      "key": "ownerPassword",
+      "value": "OwnerPassword123!",
+      "type": "string"
+    },
+    {
+      "key": "tenantEmail",
+      "value": "tenant1@dwellos.io",
+      "type": "string"
+    },
+    {
+      "key": "tenantPassword",
+      "value": "TenantPassword123!",
+      "type": "string"
     }
   ],
   "item": [
@@ -261,7 +291,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{tenantEmail}}\",\n  \"password\": \"{{tenantPassword}}\"\n}"
+              "raw": "{\n  \"email\": \"tenant1@dwellos.io\",\n  \"password\": \"TenantPassword123!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/login",
@@ -315,7 +345,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{ownerEmail}}\",\n  \"password\": \"{{ownerPassword}}\"\n}"
+              "raw": "{\n  \"email\": \"owner@dwellos.io\",\n  \"password\": \"OwnerPassword123!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/login",
@@ -369,7 +399,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+              "raw": "{\n  \"email\": \"admin@dwellos.io\",\n  \"password\": \"AdminPassword123!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/login",
