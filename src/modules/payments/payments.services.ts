@@ -45,8 +45,12 @@ export class PaymentService {
 
 		// Check idempotency
 		const idempotencyKey =
-			input.idempotencyKey || `rent_${invoice.id}_${userId}`;
-		const existingPayment = await prisma.Payment.first({ idempotencyKey });
+			input.idempotencyKey || `cs_rent_${invoice.id}_${userId}`;
+		const existingPayment =
+			(await prisma.Payment.first({ idempotencyKey })) ||
+			(await prisma.Payment.first({
+				idempotencyKey: `rent_${invoice.id}_${userId}`,
+			}));
 		if (existingPayment && existingPayment.status === 'SUCCEEDED') {
 			return {
 				payment: existingPayment,
@@ -58,10 +62,38 @@ export class PaymentService {
 			};
 		}
 
+		if (
+			existingPayment?.stripeCheckoutSessionId &&
+			!existingPayment.stripeCheckoutSessionId.startsWith('cs_mock_')
+		) {
+			const existingSession = await getCheckoutSession(
+				existingPayment.stripeCheckoutSessionId,
+			);
+			if (
+				existingSession &&
+				existingSession.status === 'open' &&
+				existingSession.url
+			) {
+				return {
+					payment: existingPayment,
+					url: existingSession.url,
+					checkoutUrl: existingSession.url,
+					redirectUrl: existingSession.url,
+					sessionId: existingSession.id,
+					clientSecret: existingSession.client_secret || null,
+				};
+			}
+		}
+
 		const user = await prisma.User.first({ id: userId });
 		if (!user) throw new NotFoundError('User not found');
 
 		const customerId = await getOrCreateStripeCustomer(user);
+		if (!user.stripeCustomerId && !customerId.startsWith('cus_mock_')) {
+			await prisma.User.where({ id: userId }).update({
+				stripeCustomerId: customerId,
+			});
+		}
 		const lease = await prisma.Lease.first({ id: invoice.leaseId });
 		const property = lease
 			? await prisma.Property.first({ id: lease.propertyId })
@@ -160,8 +192,13 @@ export class PaymentService {
 			throw new BusinessRuleError('This bill share has already been paid');
 		}
 
-		const idempotencyKey = input.idempotencyKey || `bill_${share.id}_${userId}`;
-		const existingPayment = await prisma.Payment.first({ idempotencyKey });
+		const idempotencyKey =
+			input.idempotencyKey || `cs_bill_${share.id}_${userId}`;
+		const existingPayment =
+			(await prisma.Payment.first({ idempotencyKey })) ||
+			(await prisma.Payment.first({
+				idempotencyKey: `bill_${share.id}_${userId}`,
+			}));
 		if (existingPayment && existingPayment.status === 'SUCCEEDED') {
 			return {
 				payment: existingPayment,
@@ -173,10 +210,38 @@ export class PaymentService {
 			};
 		}
 
+		if (
+			existingPayment?.stripeCheckoutSessionId &&
+			!existingPayment.stripeCheckoutSessionId.startsWith('cs_mock_')
+		) {
+			const existingSession = await getCheckoutSession(
+				existingPayment.stripeCheckoutSessionId,
+			);
+			if (
+				existingSession &&
+				existingSession.status === 'open' &&
+				existingSession.url
+			) {
+				return {
+					payment: existingPayment,
+					url: existingSession.url,
+					checkoutUrl: existingSession.url,
+					redirectUrl: existingSession.url,
+					sessionId: existingSession.id,
+					clientSecret: existingSession.client_secret || null,
+				};
+			}
+		}
+
 		const user = await prisma.User.first({ id: userId });
 		if (!user) throw new NotFoundError('User not found');
 
 		const customerId = await getOrCreateStripeCustomer(user);
+		if (!user.stripeCustomerId && !customerId.startsWith('cus_mock_')) {
+			await prisma.User.where({ id: userId }).update({
+				stripeCustomerId: customerId,
+			});
+		}
 		const bill = await prisma.UtilityBill.first({ id: share.billId });
 		const property = bill
 			? await prisma.Property.first({ id: bill.propertyId })
@@ -267,9 +332,13 @@ export class PaymentService {
 
 		const amount = input.amount ?? lease.deposit;
 		const idempotencyKey =
-			input.idempotencyKey || `deposit_${lease.id}_${userId}`;
+			input.idempotencyKey || `cs_deposit_${lease.id}_${userId}`;
 
-		const existingPayment = await prisma.Payment.first({ idempotencyKey });
+		const existingPayment =
+			(await prisma.Payment.first({ idempotencyKey })) ||
+			(await prisma.Payment.first({
+				idempotencyKey: `deposit_${lease.id}_${userId}`,
+			}));
 		if (existingPayment && existingPayment.status === 'SUCCEEDED') {
 			return {
 				payment: existingPayment,
@@ -281,10 +350,38 @@ export class PaymentService {
 			};
 		}
 
+		if (
+			existingPayment?.stripeCheckoutSessionId &&
+			!existingPayment.stripeCheckoutSessionId.startsWith('cs_mock_')
+		) {
+			const existingSession = await getCheckoutSession(
+				existingPayment.stripeCheckoutSessionId,
+			);
+			if (
+				existingSession &&
+				existingSession.status === 'open' &&
+				existingSession.url
+			) {
+				return {
+					payment: existingPayment,
+					url: existingSession.url,
+					checkoutUrl: existingSession.url,
+					redirectUrl: existingSession.url,
+					sessionId: existingSession.id,
+					clientSecret: existingSession.client_secret || null,
+				};
+			}
+		}
+
 		const user = await prisma.User.first({ id: userId });
 		if (!user) throw new NotFoundError('User not found');
 
 		const customerId = await getOrCreateStripeCustomer(user);
+		if (!user.stripeCustomerId && !customerId.startsWith('cus_mock_')) {
+			await prisma.User.where({ id: userId }).update({
+				stripeCustomerId: customerId,
+			});
+		}
 		const property = await prisma.Property.first({ id: lease.propertyId });
 
 		const session = await createCheckoutSession({

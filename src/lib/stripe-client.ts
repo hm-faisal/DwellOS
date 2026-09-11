@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { envConfig } from '../config/index.ts';
+import { BusinessRuleError } from './errors.ts';
 
 export const stripe = new Stripe(
 	envConfig.stripe.secretKey || 'sk_test_placeholder',
@@ -187,9 +188,29 @@ export async function createCheckoutSession(
 			};
 		}
 
-		const session = await stripe.checkout.sessions.create(sessionParams, {
-			idempotencyKey: params.idempotencyKey,
-		});
+		const stripeIdempotencyKey = params.idempotencyKey
+			? params.idempotencyKey.startsWith('cs_')
+				? params.idempotencyKey
+				: `cs_${params.idempotencyKey}`
+			: undefined;
+
+		let session: Stripe.Checkout.Session;
+		try {
+			session = await stripe.checkout.sessions.create(sessionParams, {
+				idempotencyKey: stripeIdempotencyKey,
+			});
+		} catch (stripeErr: any) {
+			if (
+				stripeErr?.type === 'StripeIdempotencyError' &&
+				stripeIdempotencyKey
+			) {
+				session = await stripe.checkout.sessions.create(sessionParams, {
+					idempotencyKey: `${stripeIdempotencyKey}_${Date.now()}`,
+				});
+			} else {
+				throw stripeErr;
+			}
+		}
 
 		return {
 			id: session.id,
@@ -200,7 +221,17 @@ export async function createCheckoutSession(
 					: session.payment_intent?.id || null,
 			clientSecret: session.client_secret || null,
 		};
-	} catch {
+	} catch (err: any) {
+		console.error('Stripe createCheckoutSession error:', err);
+		if (
+			envConfig.stripe.secretKey &&
+			envConfig.stripe.secretKey !== 'sk_test_placeholder' &&
+			!envConfig.stripe.secretKey.startsWith('mock')
+		) {
+			throw new BusinessRuleError(
+				err?.message || 'Failed to create Stripe Checkout session',
+			);
+		}
 		const mockSessionId = `cs_mock_${Date.now()}`;
 		const mockUrl = `https://checkout.stripe.com/pay/${mockSessionId}`;
 		return {
