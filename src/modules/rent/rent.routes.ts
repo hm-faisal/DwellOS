@@ -18,6 +18,8 @@ router.get(
 	RentController.listLeaseInvoices,
 );
 
+router.get('/invoices', authenticate, RentController.listInvoices);
+
 router.get(
 	'/invoices/:id',
 	authenticate,

@@ -408,6 +408,21 @@ async function seed() {
 			joinedAt: new Date(),
 			isPrimary: true,
 		});
+
+		const ioTenantId = 'dc617205-d159-48bc-be73-4ab0752888a5';
+		const ioTenantExisting = await prisma.LeaseTenant.first({
+			leaseId,
+			tenantId: ioTenantId,
+		});
+		if (!ioTenantExisting) {
+			await prisma.LeaseTenant.create({
+				id: crypto.randomUUID(),
+				leaseId,
+				tenantId: ioTenantId,
+				joinedAt: new Date(),
+				isPrimary: false,
+			});
+		}
 	}
 	console.log('✓ Seeded Lease & LeaseTenant');
 

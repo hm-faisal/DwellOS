@@ -23,32 +23,32 @@
     },
     {
       "key": "propertyId",
-      "value": "prop_sample_1",
+      "value": "66666666-6666-4666-8666-666666666666",
       "type": "string"
     },
     {
       "key": "roomId",
-      "value": "room_sample_1",
+      "value": "77777777-7777-4777-8777-777777777777",
       "type": "string"
     },
     {
       "key": "leaseId",
-      "value": "lease_sample_1",
+      "value": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       "type": "string"
     },
     {
       "key": "applicationId",
-      "value": "app_sample_1",
+      "value": "99999999-9999-4999-8999-999999999999",
       "type": "string"
     },
     {
       "key": "invoiceId",
-      "value": "inv_sample_1",
+      "value": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       "type": "string"
     },
     {
       "key": "billId",
-      "value": "bill_sample_1",
+      "value": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
       "type": "string"
     },
     {
@@ -58,7 +58,7 @@
     },
     {
       "key": "documentId",
-      "value": "doc_sample_1",
+      "value": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
       "type": "string"
     },
     {
@@ -2013,6 +2013,47 @@
       "name": "11. Rent Tracking & Invoices",
       "item": [
         {
+          "name": "List All Invoices (My Invoices)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var res = pm.response.json();",
+                  "    var items = res.data && (res.data.items || res.data);",
+                  "    if (items && items.length > 0 && items[0].id) {",
+                  "        pm.collectionVariables.set(\"invoiceId\", items[0].id);",
+                  "        if (pm.environment) pm.environment.set(\"invoiceId\", items[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invoices"
+              ]
+            }
+          }
+        },
+        {
           "name": "List Invoices for Lease",
           "request": {
             "method": "GET",
@@ -2035,7 +2076,25 @@
                 "invoices"
               ]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var res = pm.response.json();",
+                  "    var items = res.data && (res.data.items || res.data);",
+                  "    if (items && items.length > 0 && items[0].id) {",
+                  "        pm.collectionVariables.set(\"invoiceId\", items[0].id);",
+                  "        if (pm.environment) pm.environment.set(\"invoiceId\", items[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
         {
           "name": "Get Invoice Details",
