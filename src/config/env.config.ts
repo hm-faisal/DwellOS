@@ -10,6 +10,10 @@ export const envConfig = {
 	port: getEnvNumber('PORT', 5000),
 	databaseUrl: getEnv('DATABASE_URL', ''),
 	corsOrigin: getEnv('CORS_ORIGIN', '*'),
+	clientUrl: getEnv(
+		'CLIENT_URL',
+		getEnv('FRONTEND_URL', 'http://localhost:3000'),
+	),
 
 	redis: {
 		url: process.env.REDIS_URL || undefined,

@@ -7,8 +7,9 @@ import {
 	recordAuditLog,
 } from '../../lib/prisma.ts';
 import {
-	createPaymentIntent,
+	createCheckoutSession,
 	createSetupIntent,
+	getCheckoutSession,
 	getOrCreateStripeCustomer,
 	refundPayment as stripeRefund,
 } from '../../lib/stripe-client.ts';
@@ -47,7 +48,14 @@ export class PaymentService {
 			input.idempotencyKey || `rent_${invoice.id}_${userId}`;
 		const existingPayment = await prisma.Payment.first({ idempotencyKey });
 		if (existingPayment && existingPayment.status === 'SUCCEEDED') {
-			return existingPayment;
+			return {
+				payment: existingPayment,
+				url: null,
+				checkoutUrl: null,
+				redirectUrl: null,
+				sessionId: existingPayment.stripeCheckoutSessionId,
+				clientSecret: null,
+			};
 		}
 
 		const user = await prisma.User.first({ id: userId });
@@ -65,13 +73,17 @@ export class PaymentService {
 			throw new BusinessRuleError('No balance due on this invoice');
 		}
 
-		// Create Stripe PaymentIntent with Connect destination if property has stripeAccountId
-		const pi = await createPaymentIntent({
+		// Create Stripe Checkout Session with Connect destination if property has stripeAccountId
+		const session = await createCheckoutSession({
 			amount: remainingAmount,
 			currency: 'usd',
+			name: `Rent Payment - Invoice #${invoice.id.slice(-8)}`,
+			description: `Rent payment for property ${property?.title || ''}`.trim(),
 			customerId,
 			destinationAccountId: property?.stripeAccountId,
 			idempotencyKey,
+			successUrl: input.successUrl,
+			cancelUrl: input.cancelUrl,
 			metadata: {
 				userId,
 				invoiceId: invoice.id,
@@ -84,8 +96,14 @@ export class PaymentService {
 		const payment = existingPayment
 			? await prisma.Payment.where({ id: existingPayment.id }).update({
 					amount: remainingAmount,
-					stripePaymentIntentId: pi.id,
+					stripeCheckoutSessionId: session.id,
+					stripePaymentIntentId: session.paymentIntentId || null,
 					status: 'PROCESSING',
+					metadata: JSON.stringify({
+						checkoutUrl: session.url,
+						sessionId: session.id,
+						clientSecret: session.clientSecret,
+					}),
 					updatedAt: nowInstant(),
 				})
 			: await prisma.Payment.create({
@@ -98,12 +116,16 @@ export class PaymentService {
 					invoiceId: invoice.id,
 					billShareId: null,
 					leaseId: lease?.id || null,
-					stripePaymentIntentId: pi.id,
-					stripeCheckoutSessionId: null,
+					stripePaymentIntentId: session.paymentIntentId || null,
+					stripeCheckoutSessionId: session.id,
 					stripeTransferId: null,
 					refundAmount: 0,
 					idempotencyKey,
-					metadata: JSON.stringify({ clientSecret: pi.clientSecret }),
+					metadata: JSON.stringify({
+						checkoutUrl: session.url,
+						sessionId: session.id,
+						clientSecret: session.clientSecret,
+					}),
 					createdAt: nowInstant(),
 					updatedAt: nowInstant(),
 				});
@@ -122,7 +144,11 @@ export class PaymentService {
 
 		return {
 			payment,
-			clientSecret: pi.clientSecret,
+			url: session.url,
+			checkoutUrl: session.url,
+			redirectUrl: session.url,
+			sessionId: session.id,
+			clientSecret: session.clientSecret,
 		};
 	}
 
@@ -137,7 +163,14 @@ export class PaymentService {
 		const idempotencyKey = input.idempotencyKey || `bill_${share.id}_${userId}`;
 		const existingPayment = await prisma.Payment.first({ idempotencyKey });
 		if (existingPayment && existingPayment.status === 'SUCCEEDED') {
-			return existingPayment;
+			return {
+				payment: existingPayment,
+				url: null,
+				checkoutUrl: null,
+				redirectUrl: null,
+				sessionId: existingPayment.stripeCheckoutSessionId,
+				clientSecret: null,
+			};
 		}
 
 		const user = await prisma.User.first({ id: userId });
@@ -149,12 +182,17 @@ export class PaymentService {
 			? await prisma.Property.first({ id: bill.propertyId })
 			: null;
 
-		const pi = await createPaymentIntent({
+		const session = await createCheckoutSession({
 			amount: share.amount,
 			currency: 'usd',
+			name: `Utility Bill - ${bill?.type || 'Bill'} #${bill?.id.slice(-8) || ''}`,
+			description:
+				`Utility bill payment for property ${property?.title || ''}`.trim(),
 			customerId,
 			destinationAccountId: property?.stripeAccountId,
 			idempotencyKey,
+			successUrl: input.successUrl,
+			cancelUrl: input.cancelUrl,
 			metadata: {
 				userId,
 				billShareId: share.id,
@@ -167,8 +205,14 @@ export class PaymentService {
 		const payment = existingPayment
 			? await prisma.Payment.where({ id: existingPayment.id }).update({
 					amount: share.amount,
-					stripePaymentIntentId: pi.id,
+					stripeCheckoutSessionId: session.id,
+					stripePaymentIntentId: session.paymentIntentId || null,
 					status: 'PROCESSING',
+					metadata: JSON.stringify({
+						checkoutUrl: session.url,
+						sessionId: session.id,
+						clientSecret: session.clientSecret,
+					}),
 					updatedAt: nowInstant(),
 				})
 			: await prisma.Payment.create({
@@ -181,12 +225,16 @@ export class PaymentService {
 					invoiceId: null,
 					billShareId: share.id,
 					leaseId: null,
-					stripePaymentIntentId: pi.id,
-					stripeCheckoutSessionId: null,
+					stripePaymentIntentId: session.paymentIntentId || null,
+					stripeCheckoutSessionId: session.id,
 					stripeTransferId: null,
 					refundAmount: 0,
 					idempotencyKey,
-					metadata: JSON.stringify({ clientSecret: pi.clientSecret }),
+					metadata: JSON.stringify({
+						checkoutUrl: session.url,
+						sessionId: session.id,
+						clientSecret: session.clientSecret,
+					}),
 					createdAt: nowInstant(),
 					updatedAt: nowInstant(),
 				});
@@ -205,7 +253,11 @@ export class PaymentService {
 
 		return {
 			payment,
-			clientSecret: pi.clientSecret,
+			url: session.url,
+			checkoutUrl: session.url,
+			redirectUrl: session.url,
+			sessionId: session.id,
+			clientSecret: session.clientSecret,
 		};
 	}
 
@@ -219,7 +271,14 @@ export class PaymentService {
 
 		const existingPayment = await prisma.Payment.first({ idempotencyKey });
 		if (existingPayment && existingPayment.status === 'SUCCEEDED') {
-			return existingPayment;
+			return {
+				payment: existingPayment,
+				url: null,
+				checkoutUrl: null,
+				redirectUrl: null,
+				sessionId: existingPayment.stripeCheckoutSessionId,
+				clientSecret: null,
+			};
 		}
 
 		const user = await prisma.User.first({ id: userId });
@@ -228,12 +287,17 @@ export class PaymentService {
 		const customerId = await getOrCreateStripeCustomer(user);
 		const property = await prisma.Property.first({ id: lease.propertyId });
 
-		const pi = await createPaymentIntent({
+		const session = await createCheckoutSession({
 			amount,
 			currency: 'usd',
+			name: `Security Deposit - Lease #${lease.id.slice(-8)}`,
+			description:
+				`Security deposit for property ${property?.title || ''}`.trim(),
 			customerId,
 			destinationAccountId: property?.stripeAccountId,
 			idempotencyKey,
+			successUrl: input.successUrl,
+			cancelUrl: input.cancelUrl,
 			metadata: {
 				userId,
 				leaseId: lease.id,
@@ -245,8 +309,14 @@ export class PaymentService {
 		const payment = existingPayment
 			? await prisma.Payment.where({ id: existingPayment.id }).update({
 					amount,
-					stripePaymentIntentId: pi.id,
+					stripeCheckoutSessionId: session.id,
+					stripePaymentIntentId: session.paymentIntentId || null,
 					status: 'PROCESSING',
+					metadata: JSON.stringify({
+						checkoutUrl: session.url,
+						sessionId: session.id,
+						clientSecret: session.clientSecret,
+					}),
 					updatedAt: nowInstant(),
 				})
 			: await prisma.Payment.create({
@@ -259,12 +329,16 @@ export class PaymentService {
 					invoiceId: null,
 					billShareId: null,
 					leaseId: lease.id,
-					stripePaymentIntentId: pi.id,
-					stripeCheckoutSessionId: null,
+					stripePaymentIntentId: session.paymentIntentId || null,
+					stripeCheckoutSessionId: session.id,
 					stripeTransferId: null,
 					refundAmount: 0,
 					idempotencyKey,
-					metadata: JSON.stringify({ clientSecret: pi.clientSecret }),
+					metadata: JSON.stringify({
+						checkoutUrl: session.url,
+						sessionId: session.id,
+						clientSecret: session.clientSecret,
+					}),
 					createdAt: nowInstant(),
 					updatedAt: nowInstant(),
 				});
@@ -283,7 +357,11 @@ export class PaymentService {
 
 		return {
 			payment,
-			clientSecret: pi.clientSecret,
+			url: session.url,
+			checkoutUrl: session.url,
+			redirectUrl: session.url,
+			sessionId: session.id,
+			clientSecret: session.clientSecret,
 		};
 	}
 
@@ -307,9 +385,25 @@ export class PaymentService {
 				throw new BusinessRuleError('Payment is already fully refunded');
 			}
 
-			if (payment.stripePaymentIntentId) {
+			let paymentIntentId = payment.stripePaymentIntentId;
+			if (!paymentIntentId && payment.stripeCheckoutSessionId) {
+				const session = await getCheckoutSession(
+					payment.stripeCheckoutSessionId,
+				);
+				paymentIntentId =
+					typeof session?.payment_intent === 'string'
+						? session.payment_intent
+						: session?.payment_intent?.id || null;
+				if (paymentIntentId) {
+					await txPrisma.Payment.where({ id: paymentId }).update({
+						stripePaymentIntentId: paymentIntentId,
+					});
+				}
+			}
+
+			if (paymentIntentId) {
 				await stripeRefund({
-					paymentIntentId: payment.stripePaymentIntentId,
+					paymentIntentId,
 					amount: refundAmount,
 					reason: input?.reason,
 				});
@@ -380,12 +474,49 @@ export class PaymentService {
 
 			const obj = event.data.object;
 
-			if (event.type === 'payment_intent.succeeded') {
-				const piId = obj.id;
-				const payment = await txPrisma.Payment.first({
-					stripePaymentIntentId: piId,
+			// Locate payment record by session ID or payment intent ID
+			let payment = null;
+			let paymentIntentId: string | null = null;
+
+			if (event.type.startsWith('checkout.session')) {
+				const sessionId = obj.id;
+				paymentIntentId =
+					typeof obj.payment_intent === 'string'
+						? obj.payment_intent
+						: obj.payment_intent?.id || null;
+
+				payment = await txPrisma.Payment.first({
+					stripeCheckoutSessionId: sessionId,
 				});
-				if (payment) {
+
+				if (!payment && paymentIntentId) {
+					payment = await txPrisma.Payment.first({
+						stripePaymentIntentId: paymentIntentId,
+					});
+				}
+			} else if (event.type.startsWith('payment_intent')) {
+				paymentIntentId = obj.id;
+				payment = await txPrisma.Payment.first({
+					stripePaymentIntentId: paymentIntentId,
+				});
+			}
+
+			// Handle successful payment completion
+			const isSuccessEvent =
+				(event.type === 'checkout.session.completed' &&
+					(obj.payment_status === 'paid' ||
+						obj.payment_status === 'no_payment_required')) ||
+				event.type === 'payment_intent.succeeded';
+
+			if (isSuccessEvent && payment) {
+				// Update payment intent ID if not yet recorded
+				if (!payment.stripePaymentIntentId && paymentIntentId) {
+					await txPrisma.Payment.where({ id: payment.id }).update({
+						stripePaymentIntentId: paymentIntentId,
+					});
+				}
+
+				if (payment.status !== 'SUCCEEDED') {
 					await txPrisma.Payment.where({ id: payment.id }).update({
 						status: 'SUCCEEDED',
 						updatedAt: nowInstant(),
@@ -462,26 +593,25 @@ export class PaymentService {
 						}
 					}
 				}
-			} else if (event.type === 'payment_intent.payment_failed') {
-				const piId = obj.id;
-				const payment = await txPrisma.Payment.first({
-					stripePaymentIntentId: piId,
+			} else if (
+				(event.type === 'payment_intent.payment_failed' ||
+					event.type === 'checkout.session.expired') &&
+				payment &&
+				payment.status !== 'SUCCEEDED'
+			) {
+				await txPrisma.Payment.where({ id: payment.id }).update({
+					status: 'FAILED',
+					updatedAt: nowInstant(),
 				});
-				if (payment) {
-					await txPrisma.Payment.where({ id: payment.id }).update({
-						status: 'FAILED',
-						updatedAt: nowInstant(),
-					});
 
-					await recordAuditLog(txPrisma, {
-						actorId: null,
-						entityType: 'Payment',
-						entityId: payment.id,
-						action: 'PAYMENT_FAILED',
-						beforeState: { status: payment.status },
-						afterState: { status: 'FAILED' },
-					});
-				}
+				await recordAuditLog(txPrisma, {
+					actorId: null,
+					entityType: 'Payment',
+					entityId: payment.id,
+					action: 'PAYMENT_FAILED',
+					beforeState: { status: payment.status },
+					afterState: { status: 'FAILED' },
+				});
 			}
 
 			return { received: true };

@@ -22,7 +22,7 @@ const payRent = catchAsync(async (req: Request, res: Response) => {
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: 'Rent PaymentIntent created successfully',
+		message: 'Rent checkout session created successfully',
 		data: result,
 	});
 });
@@ -34,7 +34,7 @@ const payBill = catchAsync(async (req: Request, res: Response) => {
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: 'Bill PaymentIntent created successfully',
+		message: 'Bill checkout session created successfully',
 		data: result,
 	});
 });
@@ -46,7 +46,7 @@ const payDeposit = catchAsync(async (req: Request, res: Response) => {
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: 'Deposit PaymentIntent created successfully',
+		message: 'Deposit checkout session created successfully',
 		data: result,
 	});
 });

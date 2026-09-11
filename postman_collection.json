@@ -2150,7 +2150,7 @@
           }
         },
         {
-          "name": "Pay Rent Invoice (PaymentIntent)",
+          "name": "Pay Rent Invoice (Checkout Session)",
           "request": {
             "method": "POST",
             "header": [
@@ -2168,7 +2168,7 @@
               "raw": "{\n  \"invoiceId\": \"{{invoiceId}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/payments/payment-intent/rent",
+              "raw": "{{baseUrl}}/api/v1/payments/rent",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2176,14 +2176,13 @@
                 "api",
                 "v1",
                 "payments",
-                "payment-intent",
                 "rent"
               ]
             }
           }
         },
         {
-          "name": "Pay Utility Bill Share (PaymentIntent)",
+          "name": "Pay Utility Bill Share (Checkout Session)",
           "request": {
             "method": "POST",
             "header": [
@@ -2198,10 +2197,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"shareId\": \"bill_share_id\"\n}"
+              "raw": "{\n  \"billShareId\": \"{{billShareId}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/payments/payment-intent/bill",
+              "raw": "{{baseUrl}}/api/v1/payments/bill",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2209,14 +2208,13 @@
                 "api",
                 "v1",
                 "payments",
-                "payment-intent",
                 "bill"
               ]
             }
           }
         },
         {
-          "name": "Pay Security Deposit (PaymentIntent)",
+          "name": "Pay Security Deposit (Checkout Session)",
           "request": {
             "method": "POST",
             "header": [
@@ -2234,7 +2232,7 @@
               "raw": "{\n  \"leaseId\": \"{{leaseId}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/payments/payment-intent/deposit",
+              "raw": "{{baseUrl}}/api/v1/payments/deposit",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2242,7 +2240,6 @@
                 "api",
                 "v1",
                 "payments",
-                "payment-intent",
                 "deposit"
               ]
             }

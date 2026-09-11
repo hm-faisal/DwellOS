@@ -9,6 +9,8 @@ export const payRentSchema = z.object({
 		.object({
 			invoiceId: z.string().trim().min(1, 'Invoice ID is required'),
 			idempotencyKey: z.string().trim().min(1).max(255).optional(),
+			successUrl: z.string().trim().url().optional(),
+			cancelUrl: z.string().trim().url().optional(),
 		})
 		.passthrough(),
 });
@@ -16,10 +18,21 @@ export const payRentSchema = z.object({
 export const payBillSchema = z.object({
 	body: z
 		.object({
-			billShareId: z.string().trim().min(1, 'Bill share ID is required'),
+			billShareId: z.string().trim().min(1).optional(),
+			shareId: z.string().trim().min(1).optional(),
 			idempotencyKey: z.string().trim().min(1).max(255).optional(),
+			successUrl: z.string().trim().url().optional(),
+			cancelUrl: z.string().trim().url().optional(),
 		})
-		.passthrough(),
+		.passthrough()
+		.refine((data) => Boolean(data.billShareId || data.shareId), {
+			message: 'Bill share ID is required',
+			path: ['billShareId'],
+		})
+		.transform((data) => ({
+			...data,
+			billShareId: (data.billShareId || data.shareId) as string,
+		})),
 });
 
 export const payDepositSchema = z.object({
@@ -28,6 +41,8 @@ export const payDepositSchema = z.object({
 			leaseId: z.string().trim().min(1, 'Lease ID is required'),
 			amount: z.number().int().positive().max(100000000).optional(), // In integer minor units (cents)
 			idempotencyKey: z.string().trim().min(1).max(255).optional(),
+			successUrl: z.string().trim().url().optional(),
+			cancelUrl: z.string().trim().url().optional(),
 		})
 		.passthrough(),
 });

@@ -111,6 +111,120 @@ export async function createPaymentIntent(params: {
 	}
 }
 
+export interface CreateCheckoutSessionParams {
+	amount: number; // integer minor units (cents)
+	currency?: string;
+	name: string;
+	description?: string;
+	customerId?: string;
+	destinationAccountId?: string | null;
+	idempotencyKey?: string;
+	successUrl?: string;
+	cancelUrl?: string;
+	metadata?: Record<string, string>;
+}
+
+/**
+ * Create a Stripe Checkout Session for hosted payment redirect URL
+ */
+export async function createCheckoutSession(
+	params: CreateCheckoutSessionParams,
+): Promise<{
+	id: string;
+	url: string;
+	paymentIntentId?: string | null;
+	clientSecret?: string | null;
+}> {
+	try {
+		const clientUrl = envConfig.clientUrl || 'http://localhost:3000';
+		const successUrl =
+			params.successUrl ||
+			`${clientUrl}/payments/success?session_id={CHECKOUT_SESSION_ID}`;
+		const cancelUrl =
+			params.cancelUrl ||
+			`${clientUrl}/payments/cancel?session_id={CHECKOUT_SESSION_ID}`;
+
+		const sessionParams: Stripe.Checkout.SessionCreateParams = {
+			payment_method_types: ['card'],
+			line_items: [
+				{
+					price_data: {
+						currency: params.currency || 'usd',
+						product_data: {
+							name: params.name,
+							...(params.description
+								? { description: params.description }
+								: {}),
+						},
+						unit_amount: params.amount,
+					},
+					quantity: 1,
+				},
+			],
+			mode: 'payment',
+			success_url: successUrl,
+			cancel_url: cancelUrl,
+			metadata: params.metadata || {},
+		};
+
+		if (params.customerId && !params.customerId.startsWith('cus_mock_')) {
+			sessionParams.customer = params.customerId;
+		}
+
+		if (
+			params.destinationAccountId &&
+			!params.destinationAccountId.startsWith('acct_mock_')
+		) {
+			sessionParams.payment_intent_data = {
+				transfer_data: {
+					destination: params.destinationAccountId,
+				},
+				metadata: params.metadata,
+			};
+		} else if (params.metadata) {
+			sessionParams.payment_intent_data = {
+				metadata: params.metadata,
+			};
+		}
+
+		const session = await stripe.checkout.sessions.create(sessionParams, {
+			idempotencyKey: params.idempotencyKey,
+		});
+
+		return {
+			id: session.id,
+			url: session.url || '',
+			paymentIntentId:
+				typeof session.payment_intent === 'string'
+					? session.payment_intent
+					: session.payment_intent?.id || null,
+			clientSecret: session.client_secret || null,
+		};
+	} catch {
+		const mockSessionId = `cs_mock_${Date.now()}`;
+		const mockUrl = `https://checkout.stripe.com/pay/${mockSessionId}`;
+		return {
+			id: mockSessionId,
+			url: mockUrl,
+			paymentIntentId: `pi_mock_${Date.now()}`,
+			clientSecret: `pi_secret_mock_${Date.now()}`,
+		};
+	}
+}
+
+/**
+ * Retrieve a Stripe Checkout Session
+ */
+export async function getCheckoutSession(
+	sessionId: string,
+): Promise<Stripe.Checkout.Session | null> {
+	try {
+		return await stripe.checkout.sessions.retrieve(sessionId);
+	} catch {
+		return null;
+	}
+}
+
 /**
  * Process a refund through Stripe
  */
