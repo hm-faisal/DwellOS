@@ -65,5 +65,12 @@ router.delete(
 	validateRequest(removeManagerSchema),
 	PropertyController.removeManager,
 );
+router.delete(
+	'/:id/managers/:managerId',
+	authenticate,
+	requirePropertyScope('id'),
+	validateRequest(removeManagerSchema),
+	PropertyController.removeManager,
+);
 
 export default router;

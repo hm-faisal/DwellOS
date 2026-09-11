@@ -84,7 +84,7 @@ const addManager = catchAsync(async (req: Request, res: Response) => {
 
 const removeManager = catchAsync(async (req: Request, res: Response) => {
 	const id = req.params.id as string;
-	const userId = req.params.userId as string;
+	const userId = (req.params.userId || req.params.managerId) as string;
 	const user = req.user!;
 	const result = await propertyService.removeManager(id, userId, user.id);
 	sendResponse(res, {

@@ -153,21 +153,39 @@ export const addManagerSchema = z.object({
 		.passthrough(),
 	body: z
 		.object({
-			userId: z.string().trim().min(1, 'User ID is required'),
+			userId: z.string().trim().optional(),
+			managerId: z.string().trim().optional(),
 			permissions: z
 				.array(z.string().trim().min(1).max(100))
 				.default(['MANAGE_ROOMS', 'MANAGE_APPLICATIONS', 'MANAGE_MAINTENANCE']),
 		})
-		.passthrough(),
+		.passthrough()
+		.transform((val) => ({
+			userId: (val.userId || val.managerId || '').trim(),
+			permissions: val.permissions,
+		}))
+		.refine((val) => val.userId.length > 0, {
+			message: 'Manager ID / User ID is required',
+			path: ['userId'],
+		}),
 });
 
 export const removeManagerSchema = z.object({
 	params: z
 		.object({
 			id: z.string().trim().min(1, 'Property ID is required'),
-			userId: z.string().trim().min(1, 'User ID is required'),
+			userId: z.string().trim().optional(),
+			managerId: z.string().trim().optional(),
 		})
-		.passthrough(),
+		.passthrough()
+		.transform((val) => ({
+			id: val.id,
+			userId: (val.userId || val.managerId || '').trim(),
+		}))
+		.refine((val) => val.userId.length > 0, {
+			message: 'Manager ID / User ID is required',
+			path: ['userId'],
+		}),
 });
 
 export type CreatePropertyInput = z.infer<typeof createPropertySchema>['body'];
