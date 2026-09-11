@@ -6,7 +6,9 @@ import dashboardRoutes from '../modules/dashboard/dashboard.routes.ts';
 import documentRoutes from '../modules/documents/documents.routes.ts';
 import leaseRoutes from '../modules/leases/leases.routes.ts';
 import maintenanceRoutes from '../modules/maintenance/maintenance.routes.ts';
-import notificationRoutes from '../modules/notifications/notifications.routes.ts';
+import notificationRoutes, {
+	notificationPreferencesRoutes,
+} from '../modules/notifications/notifications.routes.ts';
 import paymentRoutes from '../modules/payments/payments.routes.ts';
 import propertyRoutes from '../modules/properties/properties.routes.ts';
 import rentRoutes from '../modules/rent/rent.routes.ts';
@@ -37,7 +39,7 @@ const moduleRoutes = [
 	{ path: '/', route: maintenanceRoutes },
 	{ path: '/', route: documentRoutes },
 	{ path: '/notifications', route: notificationRoutes },
-	{ path: '/', route: notificationRoutes }, // for root notification preferences
+	{ path: '/notification-preferences', route: notificationPreferencesRoutes },
 	{ path: '/dashboard', route: dashboardRoutes },
 	{ path: '/admin', route: adminRoutes },
 ];

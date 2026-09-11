@@ -31,5 +31,12 @@ router.post(
 	validateRequest(suspendUserSchema),
 	UserController.suspendUser,
 );
+router.post(
+	'/:id/suspend',
+	authenticate,
+	requireRoles('ADMIN'),
+	validateRequest(suspendUserSchema),
+	UserController.suspendUser,
+);
 
 export default router;

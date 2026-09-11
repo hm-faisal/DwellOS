@@ -49,4 +49,11 @@ router.post(
 	MaintenanceController.rateMaintenance,
 );
 
+router.post(
+	'/maintenance/:id/rate',
+	authenticate,
+	validateRequest(rateMaintenanceSchema),
+	MaintenanceController.rateMaintenance,
+);
+
 export default router;

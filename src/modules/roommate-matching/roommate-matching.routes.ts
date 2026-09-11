@@ -53,6 +53,20 @@ router.get(
 	RoommateMatchingController.getMatches,
 );
 
+router.get(
+	'/roommates/matches',
+	authenticate,
+	validateRequest(matchesQuerySchema),
+	RoommateMatchingController.getMatches,
+);
+
+router.get(
+	'/roommates/search',
+	authenticate,
+	validateRequest(matchesQuerySchema),
+	RoommateMatchingController.getMatches,
+);
+
 router.post(
 	'/matches/:targetUserId/interest',
 	authenticate,

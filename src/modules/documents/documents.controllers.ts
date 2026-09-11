@@ -59,8 +59,20 @@ const getDocumentAuditLog = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const listLeaseDocuments = catchAsync(async (req: Request, res: Response) => {
+	const leaseId = req.params.id as string;
+	const result = await documentService.getDocumentsByLeaseId(leaseId);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: 'Lease documents retrieved successfully',
+		data: result,
+	});
+});
+
 export const DocumentController = {
 	createDocument,
+	listLeaseDocuments,
 	getDocument,
 	signDocument,
 	getDocumentAuditLog,
@@ -73,6 +85,8 @@ export {
 	getDocument as getDocumentHandler,
 	getDocumentAuditLog,
 	getDocumentAuditLog as getDocumentAuditLogHandler,
+	listLeaseDocuments,
+	listLeaseDocuments as listLeaseDocumentsHandler,
 	signDocument,
 	signDocument as signDocumentHandler,
 };

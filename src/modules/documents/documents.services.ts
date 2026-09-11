@@ -1,5 +1,11 @@
 import { BusinessRuleError, NotFoundError } from '../../lib/errors.ts';
-import { db, nowInstant, prisma, recordAuditLog } from '../../lib/prisma.ts';
+import {
+	db,
+	getOrmClient,
+	nowInstant,
+	prisma,
+	recordAuditLog,
+} from '../../lib/prisma.ts';
 import type {
 	SignDocumentInput,
 	UploadDocumentInput,
@@ -69,7 +75,7 @@ export class DocumentService {
 		ipAddress?: string,
 	) {
 		return await db.transaction(async (tx) => {
-			const txPrisma = ((tx.orm as any).public ?? tx.orm) as any;
+			const txPrisma = getOrmClient(tx);
 			const doc = await txPrisma.RentalDocument.first({ id });
 			if (!doc) throw new NotFoundError('Document not found');
 
@@ -177,6 +183,15 @@ export class DocumentService {
 		}
 
 		return results;
+	}
+
+	async getDocumentsByLeaseId(leaseId: string) {
+		const lease = await prisma.Lease.first({ id: leaseId });
+		if (!lease) throw new NotFoundError('Lease not found');
+
+		return await prisma.RentalDocument.where({ leaseId })
+			.orderBy((d: any) => d.createdAt.desc())
+			.all();
 	}
 }
 

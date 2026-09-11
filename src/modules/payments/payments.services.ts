@@ -1,5 +1,11 @@
 import { BusinessRuleError, NotFoundError } from '../../lib/errors.ts';
-import { db, prisma, recordAuditLog } from '../../lib/prisma.ts';
+import {
+	db,
+	getOrmClient,
+	nowInstant,
+	prisma,
+	recordAuditLog,
+} from '../../lib/prisma.ts';
 import {
 	createPaymentIntent,
 	createSetupIntent,
@@ -80,7 +86,7 @@ export class PaymentService {
 					amount: remainingAmount,
 					stripePaymentIntentId: pi.id,
 					status: 'PROCESSING',
-					updatedAt: new Date(),
+					updatedAt: nowInstant(),
 				})
 			: await prisma.Payment.create({
 					id: paymentId,
@@ -98,8 +104,8 @@ export class PaymentService {
 					refundAmount: 0,
 					idempotencyKey,
 					metadata: JSON.stringify({ clientSecret: pi.clientSecret }),
-					createdAt: new Date(),
-					updatedAt: new Date(),
+					createdAt: nowInstant(),
+					updatedAt: nowInstant(),
 				});
 
 		await recordAuditLog(prisma, {
@@ -163,7 +169,7 @@ export class PaymentService {
 					amount: share.amount,
 					stripePaymentIntentId: pi.id,
 					status: 'PROCESSING',
-					updatedAt: new Date(),
+					updatedAt: nowInstant(),
 				})
 			: await prisma.Payment.create({
 					id: paymentId,
@@ -181,8 +187,8 @@ export class PaymentService {
 					refundAmount: 0,
 					idempotencyKey,
 					metadata: JSON.stringify({ clientSecret: pi.clientSecret }),
-					createdAt: new Date(),
-					updatedAt: new Date(),
+					createdAt: nowInstant(),
+					updatedAt: nowInstant(),
 				});
 
 		await recordAuditLog(prisma, {
@@ -241,7 +247,7 @@ export class PaymentService {
 					amount,
 					stripePaymentIntentId: pi.id,
 					status: 'PROCESSING',
-					updatedAt: new Date(),
+					updatedAt: nowInstant(),
 				})
 			: await prisma.Payment.create({
 					id: paymentId,
@@ -259,8 +265,8 @@ export class PaymentService {
 					refundAmount: 0,
 					idempotencyKey,
 					metadata: JSON.stringify({ clientSecret: pi.clientSecret }),
-					createdAt: new Date(),
-					updatedAt: new Date(),
+					createdAt: nowInstant(),
+					updatedAt: nowInstant(),
 				});
 
 		await recordAuditLog(prisma, {
@@ -287,7 +293,7 @@ export class PaymentService {
 		actorId?: string,
 	) {
 		return await db.transaction(async (tx) => {
-			const txPrisma = ((tx.orm as any).public ?? tx.orm) as any;
+			const txPrisma = getOrmClient(tx);
 			const payment = await txPrisma.Payment.first({ id: paymentId });
 			if (!payment) throw new NotFoundError('Payment not found');
 
@@ -316,7 +322,7 @@ export class PaymentService {
 			const updated = await txPrisma.Payment.where({ id: paymentId }).update({
 				refundAmount: newRefundTotal,
 				status: newStatus,
-				updatedAt: new Date(),
+				updatedAt: nowInstant(),
 			});
 
 			await recordAuditLog(txPrisma, {
@@ -353,7 +359,7 @@ export class PaymentService {
 		data: { object: any };
 	}) {
 		return await db.transaction(async (tx) => {
-			const txPrisma = ((tx.orm as any).public ?? tx.orm) as any;
+			const txPrisma = getOrmClient(tx);
 
 			// Check idempotency on stripeEventId
 			const existingEvent = await txPrisma.StripeWebhookEvent.first({
@@ -369,7 +375,7 @@ export class PaymentService {
 				stripeEventId: event.id,
 				eventType: event.type,
 				payload: JSON.stringify(event.data.object),
-				processedAt: new Date(),
+				processedAt: nowInstant(),
 			});
 
 			const obj = event.data.object;
@@ -382,7 +388,7 @@ export class PaymentService {
 				if (payment) {
 					await txPrisma.Payment.where({ id: payment.id }).update({
 						status: 'SUCCEEDED',
-						updatedAt: new Date(),
+						updatedAt: nowInstant(),
 					});
 
 					await recordAuditLog(txPrisma, {
@@ -408,7 +414,7 @@ export class PaymentService {
 							await txPrisma.RentInvoice.where({ id: invoice.id }).update({
 								amountPaid: newAmountPaid,
 								status: newInvoiceStatus,
-								updatedAt: new Date(),
+								updatedAt: nowInstant(),
 							});
 
 							await recordAuditLog(txPrisma, {
@@ -437,7 +443,7 @@ export class PaymentService {
 							await txPrisma.BillShare.where({ id: share.id }).update({
 								status: 'PAID',
 								paymentId: payment.id,
-								updatedAt: new Date(),
+								updatedAt: nowInstant(),
 							});
 
 							// Check if all shares for the bill are paid
@@ -450,7 +456,7 @@ export class PaymentService {
 							if (allSettled) {
 								await txPrisma.UtilityBill.where({ id: share.billId }).update({
 									status: 'SETTLED',
-									updatedAt: new Date(),
+									updatedAt: nowInstant(),
 								});
 							}
 						}
@@ -464,7 +470,7 @@ export class PaymentService {
 				if (payment) {
 					await txPrisma.Payment.where({ id: payment.id }).update({
 						status: 'FAILED',
-						updatedAt: new Date(),
+						updatedAt: nowInstant(),
 					});
 
 					await recordAuditLog(txPrisma, {

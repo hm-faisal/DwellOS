@@ -58,6 +58,20 @@ export class SearchService {
 			if (query?.roomType) {
 				roomQuery = roomQuery.where({ type: query.roomType });
 			}
+			if (query?.isFurnished !== undefined) {
+				if (query.isFurnished) {
+					roomQuery = roomQuery.where((r: any) =>
+						r.furnishing.in(['FURNISHED', 'SEMI_FURNISHED']),
+					);
+				} else {
+					roomQuery = roomQuery.where({ furnishing: 'UNFURNISHED' });
+				}
+			}
+			if (query?.moveInDate) {
+				roomQuery = roomQuery.where((r: any) =>
+					r.availableFrom.lte(toInstant(query.moveInDate)),
+				);
+			}
 			if (query?.priceMin !== undefined) {
 				roomQuery = roomQuery.where((r: any) => r.rent.gte(query.priceMin));
 			}

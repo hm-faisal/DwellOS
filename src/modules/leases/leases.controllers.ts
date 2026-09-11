@@ -66,10 +66,66 @@ const removeTenant = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const createLease = catchAsync(async (req: Request, res: Response) => {
+	const payload = req.body;
+	const user = req.user!;
+	const result = await leaseService.createLease(payload, user.id);
+	sendResponse(res, {
+		statusCode: httpStatus.CREATED,
+		success: true,
+		message: 'Lease agreement created successfully',
+		data: result,
+	});
+});
+
+const renewLease = catchAsync(async (req: Request, res: Response) => {
+	const id = req.params.id as string;
+	const payload = req.body;
+	const user = req.user!;
+	const result = await leaseService.updateLease(
+		id,
+		{
+			action: 'RENEW',
+			newEndDate: payload.newEndDate,
+			newRentAmount: payload.newRentAmount,
+		},
+		user.id,
+	);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: 'Lease renewed successfully',
+		data: result,
+	});
+});
+
+const terminateLease = catchAsync(async (req: Request, res: Response) => {
+	const id = req.params.id as string;
+	const payload = req.body;
+	const user = req.user!;
+	const result = await leaseService.updateLease(
+		id,
+		{
+			action: 'TERMINATE',
+			terminationReason: payload.reason ?? payload.terminationReason,
+		},
+		user.id,
+	);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: 'Lease terminated successfully',
+		data: result,
+	});
+});
+
 export const LeaseController = {
+	createLease,
 	listLeases,
 	getLease,
 	updateLease,
+	renewLease,
+	terminateLease,
 	addTenant,
 	removeTenant,
 };
@@ -77,12 +133,18 @@ export const LeaseController = {
 export {
 	addTenant,
 	addTenant as addTenantHandler,
+	createLease,
+	createLease as createLeaseHandler,
 	getLease,
 	getLease as getLeaseHandler,
 	listLeases,
 	listLeases as listLeasesHandler,
 	removeTenant,
 	removeTenant as removeTenantHandler,
+	renewLease,
+	renewLease as renewLeaseHandler,
+	terminateLease,
+	terminateLease as terminateLeaseHandler,
 	updateLease,
 	updateLease as updateLeaseHandler,
 };

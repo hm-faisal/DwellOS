@@ -37,7 +37,21 @@ export const searchPropertiesQuerySchema = z.object({
 					message: 'Search query violates Fair Housing compliance guidelines',
 				})
 				.optional(),
+			city: z
+				.string()
+				.trim()
+				.max(100)
+				.refine(fairHousingCheck, {
+					message: 'Search query violates Fair Housing compliance guidelines',
+				})
+				.optional(),
 			priceMin: z.coerce
+				.number()
+				.int()
+				.nonnegative()
+				.max(100_000_000)
+				.optional(),
+			minPrice: z.coerce
 				.number()
 				.int()
 				.nonnegative()
@@ -49,7 +63,14 @@ export const searchPropertiesQuerySchema = z.object({
 				.nonnegative()
 				.max(100_000_000)
 				.optional(),
+			maxPrice: z.coerce
+				.number()
+				.int()
+				.nonnegative()
+				.max(100_000_000)
+				.optional(),
 			roomType: z.enum(['PRIVATE', 'SHARED']).optional(),
+			isFurnished: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
 			moveInDate: z.string().datetime().optional(),
 			amenities: z
 				.string()
@@ -62,7 +83,21 @@ export const searchPropertiesQuerySchema = z.object({
 			cursor: z.string().trim().optional(),
 			limit: z.coerce.number().int().min(1).max(100).default(20),
 		})
-		.strict()
+		.passthrough()
+		.transform((val) => ({
+			location: val.location ?? val.city,
+			priceMin: val.priceMin ?? val.minPrice,
+			priceMax: val.priceMax ?? val.maxPrice,
+			roomType: val.roomType,
+			isFurnished:
+				val.isFurnished !== undefined
+					? String(val.isFurnished) === 'true'
+					: undefined,
+			moveInDate: val.moveInDate,
+			amenities: val.amenities,
+			cursor: val.cursor,
+			limit: val.limit,
+		}))
 		.optional(),
 });
 

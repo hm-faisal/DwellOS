@@ -1,9 +1,12 @@
 import { BusinessRuleError, NotFoundError } from '../../lib/errors.ts';
 import {
 	db,
+	getOrmClient,
+	nowInstant,
 	paginateResults,
 	prisma,
 	recordAuditLog,
+	toInstant,
 } from '../../lib/prisma.ts';
 import type { CreateUtilityBillInput } from './utility-bills.schemas.ts';
 
@@ -17,7 +20,7 @@ export class UtilityBillService {
 		if (!property) throw new NotFoundError('Property not found');
 
 		return await db.transaction(async (tx) => {
-			const txPrisma = ((tx.orm as any).public ?? tx.orm) as any;
+			const txPrisma = getOrmClient(tx);
 
 			const billId = crypto.randomUUID();
 			const bill = await txPrisma.UtilityBill.create({
@@ -25,14 +28,14 @@ export class UtilityBillService {
 				propertyId,
 				category: input.category,
 				amount: input.amount,
-				billingPeriodStart: new Date(input.billingPeriodStart),
-				billingPeriodEnd: new Date(input.billingPeriodEnd),
-				dueDate: new Date(input.dueDate),
+				billingPeriodStart: toInstant(input.billingPeriodStart)!,
+				billingPeriodEnd: toInstant(input.billingPeriodEnd)!,
+				dueDate: toInstant(input.dueDate)!,
 				splitMethod: input.splitMethod,
 				proofUrl: input.proofUrl ?? null,
 				status: 'PENDING',
-				createdAt: new Date(),
-				updatedAt: new Date(),
+				createdAt: nowInstant(),
+				updatedAt: nowInstant(),
 			});
 
 			// Determine active tenants on property during the period
@@ -45,13 +48,20 @@ export class UtilityBillService {
 			if (input.customShares && input.customShares.length > 0) {
 				sharesToCreate = input.customShares;
 			} else {
-				// Find all active leases for rooms on this property
+				// Find all active leases for rooms on this property or property directly
 				const rooms = await txPrisma.Room.where({ propertyId }).all();
 				const roomIds = rooms.map((r: any) => r.id);
-				const leases = await txPrisma.Lease.where((l: any) =>
-					l.roomId.in(roomIds),
-				).all();
-				const activeLeases = leases.filter((l: any) => l.status === 'ACTIVE');
+				const leasesOnRooms =
+					roomIds.length > 0
+						? await txPrisma.Lease.where((l: any) => l.roomId.in(roomIds)).all()
+						: [];
+				const leasesOnProperty = await txPrisma.Lease.where({
+					propertyId,
+				}).all();
+				const allLeases = [...leasesOnRooms, ...leasesOnProperty];
+				const activeLeases = allLeases.filter(
+					(l: any) => l.status === 'ACTIVE',
+				);
 
 				const tenantIds: string[] = [];
 				for (const lease of activeLeases) {
@@ -59,8 +69,22 @@ export class UtilityBillService {
 						leaseId: lease.id,
 					}).all();
 					for (const lt of leaseTenants) {
-						if (!tenantIds.includes(lt.tenantId)) {
+						if (!tenantIds.includes(lt.tenantId) && !lt.leftAt) {
 							tenantIds.push(lt.tenantId);
+						}
+					}
+				}
+
+				if (tenantIds.length === 0) {
+					// Fallback: check all tenants associated with any lease on property
+					for (const lease of allLeases) {
+						const leaseTenants = await txPrisma.LeaseTenant.where({
+							leaseId: lease.id,
+						}).all();
+						for (const lt of leaseTenants) {
+							if (!tenantIds.includes(lt.tenantId)) {
+								tenantIds.push(lt.tenantId);
+							}
 						}
 					}
 				}
@@ -96,8 +120,8 @@ export class UtilityBillService {
 					daysOccupied: share.daysOccupied,
 					status: 'PENDING',
 					paymentId: null,
-					createdAt: new Date(),
-					updatedAt: new Date(),
+					createdAt: nowInstant(),
+					updatedAt: nowInstant(),
 				});
 				createdShares.push(created);
 
@@ -111,7 +135,7 @@ export class UtilityBillService {
 					channel: 'IN_APP',
 					isRead: false,
 					data: JSON.stringify({ billShareId: created.id, billId }),
-					createdAt: new Date(),
+					createdAt: nowInstant(),
 				});
 			}
 

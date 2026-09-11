@@ -98,6 +98,8 @@ export class AuthService {
 				accessToken,
 				refreshToken,
 			},
+			accessToken,
+			refreshToken,
 		};
 	}
 
@@ -151,6 +153,8 @@ export class AuthService {
 				accessToken,
 				refreshToken,
 			},
+			accessToken,
+			refreshToken,
 		};
 	}
 

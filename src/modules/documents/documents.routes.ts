@@ -20,6 +20,13 @@ router.post(
 );
 
 router.get(
+	'/leases/:id/documents',
+	authenticate,
+	requireLeaseScope('id'),
+	DocumentController.listLeaseDocuments,
+);
+
+router.get(
 	'/documents/:id',
 	authenticate,
 	validateRequest(documentIdParamSchema),

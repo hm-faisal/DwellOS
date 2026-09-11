@@ -29,7 +29,21 @@ router.post(
 );
 
 router.post(
+	'/payment-intent/rent',
+	authenticate,
+	validateRequest(payRentSchema),
+	PaymentController.payRent,
+);
+
+router.post(
 	'/bill',
+	authenticate,
+	validateRequest(payBillSchema),
+	PaymentController.payBill,
+);
+
+router.post(
+	'/payment-intent/bill',
 	authenticate,
 	validateRequest(payBillSchema),
 	PaymentController.payBill,
@@ -43,7 +57,22 @@ router.post(
 );
 
 router.post(
+	'/payment-intent/deposit',
+	authenticate,
+	validateRequest(payDepositSchema),
+	PaymentController.payDeposit,
+);
+
+router.post(
 	'/:id/refund',
+	authenticate,
+	requireRoles('OWNER', 'ADMIN'),
+	validateRequest(refundPaymentSchema),
+	PaymentController.refund,
+);
+
+router.post(
+	'/refund',
 	authenticate,
 	requireRoles('OWNER', 'ADMIN'),
 	validateRequest(refundPaymentSchema),
@@ -59,5 +88,6 @@ router.get(
 
 // Webhook endpoint: no auth, verified by signature or payload
 router.post('/webhooks/stripe', PaymentController.stripeWebhook);
+router.post('/webhook', PaymentController.stripeWebhook);
 
 export default router;

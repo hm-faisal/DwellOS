@@ -5,35 +5,34 @@ export const createUtilityBillSchema = z.object({
 		.object({
 			id: z.string().trim().min(1, 'Property ID is required'),
 		})
-		.strict(),
+		.passthrough(),
 	body: z
 		.object({
-			category: z.enum([
-				'ELECTRICITY',
-				'WATER',
-				'GAS',
-				'INTERNET',
-				'TRASH',
-				'OTHER',
-			]),
+			category: z
+				.enum(['ELECTRICITY', 'WATER', 'GAS', 'INTERNET', 'TRASH', 'OTHER'])
+				.optional(),
+			type: z.string().trim().optional(),
 			amount: z
 				.number()
 				.int()
 				.positive('Amount must be positive integer cents')
-				.max(100000000),
-			billingPeriodStart: z
-				.string()
-				.trim()
-				.min(1, 'Billing period start is required'),
-			billingPeriodEnd: z
-				.string()
-				.trim()
-				.min(1, 'Billing period end is required'),
+				.max(100000000)
+				.optional(),
+			totalAmount: z
+				.number()
+				.int()
+				.positive('Total amount must be positive integer cents')
+				.max(100000000)
+				.optional(),
+			billingPeriodStart: z.string().trim().optional(),
+			billingPeriodEnd: z.string().trim().optional(),
+			billingPeriod: z.string().trim().optional(),
 			dueDate: z.string().trim().min(1, 'Due date is required'),
 			splitMethod: z
 				.enum(['EQUAL', 'PERCENTAGE', 'USAGE_BASED'])
 				.default('EQUAL'),
 			proofUrl: z.string().trim().min(1).optional(),
+			invoiceUrl: z.string().trim().min(1).optional(),
 			customShares: z
 				.array(
 					z.object({
@@ -44,7 +43,60 @@ export const createUtilityBillSchema = z.object({
 				)
 				.optional(),
 		})
-		.strict(),
+		.passthrough()
+		.transform((val) => {
+			let category:
+				| 'ELECTRICITY'
+				| 'WATER'
+				| 'GAS'
+				| 'INTERNET'
+				| 'TRASH'
+				| 'OTHER' = 'OTHER';
+
+			const rawCat = (val.category || val.type || '').toUpperCase();
+			if (
+				['ELECTRICITY', 'WATER', 'GAS', 'INTERNET', 'TRASH', 'OTHER'].includes(
+					rawCat,
+				)
+			) {
+				category = rawCat as any;
+			}
+
+			const amount = val.amount ?? val.totalAmount ?? 0;
+
+			let start = val.billingPeriodStart;
+			let end = val.billingPeriodEnd;
+			if (!start || !end) {
+				if (val.billingPeriod) {
+					const parsed = new Date(val.billingPeriod);
+					if (!Number.isNaN(parsed.getTime())) {
+						const y = parsed.getUTCFullYear();
+						const m = parsed.getUTCMonth();
+						start = new Date(Date.UTC(y, m, 1)).toISOString();
+						end = new Date(
+							Date.UTC(y, m + 1, 0, 23, 59, 59, 999),
+						).toISOString();
+					} else {
+						start = new Date().toISOString();
+						end = new Date().toISOString();
+					}
+				} else {
+					start = new Date().toISOString();
+					end = new Date().toISOString();
+				}
+			}
+
+			return {
+				category,
+				amount,
+				billingPeriodStart: start,
+				billingPeriodEnd: end,
+				dueDate: val.dueDate,
+				splitMethod: val.splitMethod ?? 'EQUAL',
+				proofUrl: val.proofUrl ?? val.invoiceUrl,
+				customShares: val.customShares,
+			};
+		}),
 });
 
 export const listPropertyBillsSchema = z.object({

@@ -34,6 +34,18 @@ const listViewingRequests = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const getViewingRequest = catchAsync(async (req: Request, res: Response) => {
+	const id = req.params.id as string;
+	const user = req.user!;
+	const result = await viewingRequestService.getViewingRequestById(id, user);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: 'Viewing request retrieved successfully',
+		data: result,
+	});
+});
+
 const updateViewingRequest = catchAsync(async (req: Request, res: Response) => {
 	const id = req.params.id as string;
 	const payload = req.body;
@@ -55,12 +67,15 @@ const updateViewingRequest = catchAsync(async (req: Request, res: Response) => {
 export const ViewingRequestController = {
 	createViewingRequest,
 	listViewingRequests,
+	getViewingRequest,
 	updateViewingRequest,
 };
 
 export {
 	createViewingRequest,
 	createViewingRequest as createViewingRequestHandler,
+	getViewingRequest,
+	getViewingRequest as getViewingRequestHandler,
 	listViewingRequests,
 	listViewingRequests as listViewingRequestsHandler,
 	updateViewingRequest,

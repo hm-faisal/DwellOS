@@ -5,9 +5,12 @@ import {
 } from '../../lib/errors.ts';
 import {
 	db,
+	getOrmClient,
+	nowInstant,
 	paginateResults,
 	prisma,
 	recordAuditLog,
+	toInstant,
 } from '../../lib/prisma.ts';
 import type {
 	ApproveApplicationInput,
@@ -43,25 +46,49 @@ export class ApplicationService {
 			id,
 			roomId: input.roomId,
 			tenantId,
-			moveInDate: new Date(input.moveInDate),
+			moveInDate: toInstant(input.moveInDate),
 			personalInfo: input.personalInfo
 				? JSON.stringify(input.personalInfo)
 				: null,
 			employment: input.employment ? JSON.stringify(input.employment) : null,
 			references: input.references ? JSON.stringify(input.references) : null,
 			status: 'SUBMITTED',
-			holdExpiresAt,
+			holdExpiresAt: toInstant(holdExpiresAt),
 			notes: input.notes ?? null,
-			createdAt: new Date(),
-			updatedAt: new Date(),
+			createdAt: nowInstant(),
+			updatedAt: nowInstant(),
 		});
+
+		if (Array.isArray(input.documents)) {
+			for (const doc of input.documents) {
+				const fileUrl = typeof doc === 'string' ? doc : (doc as any).fileUrl;
+				const name =
+					typeof doc === 'object' && (doc as any).name
+						? (doc as any).name
+						: 'Supporting Document';
+				const type =
+					typeof doc === 'object' && (doc as any).type
+						? (doc as any).type
+						: 'OTHER';
+				if (fileUrl) {
+					await prisma.ApplicationDocument.create({
+						id: crypto.randomUUID(),
+						applicationId: id,
+						name,
+						type,
+						fileUrl,
+						uploadedAt: nowInstant(),
+					});
+				}
+			}
+		}
 
 		// Mark room as RESERVED during hold if AVAILABLE
 		if (room.status === 'AVAILABLE') {
 			await prisma.Room.where({ id: room.id }).update({
 				status: 'RESERVED',
 				version: room.version + 1,
-				updatedAt: new Date(),
+				updatedAt: nowInstant(),
 			});
 			await recordAuditLog(prisma, {
 				actorId: tenantId,
@@ -163,7 +190,7 @@ export class ApplicationService {
 			name: input.name,
 			type: input.type,
 			fileUrl: input.fileUrl,
-			uploadedAt: new Date(),
+			uploadedAt: nowInstant(),
 		});
 
 		await recordAuditLog(prisma, {
@@ -186,7 +213,7 @@ export class ApplicationService {
 		const updated = await prisma.Application.where({ id }).update({
 			status: input.status,
 			notes: input.notes ?? application.notes,
-			updatedAt: new Date(),
+			updatedAt: nowInstant(),
 		});
 
 		await recordAuditLog(prisma, {
@@ -208,7 +235,7 @@ export class ApplicationService {
 			channel: 'IN_APP',
 			isRead: false,
 			data: JSON.stringify({ applicationId: id, status: input.status }),
-			createdAt: new Date(),
+			createdAt: nowInstant(),
 		});
 
 		return updated;
@@ -224,7 +251,7 @@ export class ApplicationService {
 		actorId?: string,
 	) {
 		return await db.transaction(async (tx) => {
-			const txPrisma = ((tx.orm as any).public ?? tx.orm) as any;
+			const txPrisma = getOrmClient(tx);
 
 			const application = await txPrisma.Application.first({
 				id: applicationId,
@@ -268,7 +295,7 @@ export class ApplicationService {
 				status: nextRoomStatus,
 				occupiedSlots: nextOccupiedSlots,
 				version: room.version + 1,
-				updatedAt: new Date(),
+				updatedAt: nowInstant(),
 			});
 
 			await recordAuditLog(txPrisma, {
@@ -289,31 +316,30 @@ export class ApplicationService {
 			});
 
 			// 2. Create Lease
-			const leaseStartDate = input?.leaseStartDate
-				? new Date(input.leaseStartDate)
-				: application.moveInDate;
-			const leaseEndDate = input?.leaseEndDate
-				? new Date(input.leaseEndDate)
-				: new Date(
-						new Date(leaseStartDate).setFullYear(
-							leaseStartDate.getFullYear() + 1,
-						),
-					);
+			const startDate =
+				(input?.leaseStartDate
+					? toInstant(input.leaseStartDate)
+					: toInstant(application.moveInDate)) ?? nowInstant();
+			const endDate =
+				(input?.leaseEndDate
+					? toInstant(input.leaseEndDate)
+					: toInstant(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))) ??
+				toInstant(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))!;
 
 			const leaseId = crypto.randomUUID();
 			const lease = await txPrisma.Lease.create({
 				id: leaseId,
 				propertyId: room.propertyId,
 				roomId: room.id,
-				startDate: leaseStartDate,
-				endDate: leaseEndDate,
+				startDate,
+				endDate,
 				rent: input?.rent ?? room.rent,
 				deposit: input?.deposit ?? room.deposit,
 				billingCycle: input?.billingCycle ?? 'MONTHLY',
 				billingDayOfMonth: input?.billingDayOfMonth ?? 1,
 				status: 'ACTIVE',
-				createdAt: new Date(),
-				updatedAt: new Date(),
+				createdAt: nowInstant(),
+				updatedAt: nowInstant(),
 			});
 
 			await recordAuditLog(txPrisma, {
@@ -329,7 +355,7 @@ export class ApplicationService {
 				id: crypto.randomUUID(),
 				leaseId,
 				tenantId: application.tenantId,
-				joinedAt: new Date(),
+				joinedAt: nowInstant(),
 				isPrimary: true,
 			});
 
@@ -338,7 +364,7 @@ export class ApplicationService {
 				id: applicationId,
 			}).update({
 				status: 'APPROVED',
-				updatedAt: new Date(),
+				updatedAt: nowInstant(),
 			});
 
 			await recordAuditLog(txPrisma, {
@@ -366,7 +392,7 @@ export class ApplicationService {
 							status: 'REJECTED',
 							notes:
 								'Auto-rejected due to room occupancy filled by another applicant',
-							updatedAt: new Date(),
+							updatedAt: nowInstant(),
 						});
 
 						await recordAuditLog(txPrisma, {
@@ -386,7 +412,7 @@ export class ApplicationService {
 							category: 'APPLICATION',
 							channel: 'IN_APP',
 							isRead: false,
-							createdAt: new Date(),
+							createdAt: nowInstant(),
 						});
 					}
 				}
@@ -402,7 +428,7 @@ export class ApplicationService {
 				channel: 'IN_APP',
 				isRead: false,
 				data: JSON.stringify({ leaseId: lease.id, applicationId }),
-				createdAt: new Date(),
+				createdAt: nowInstant(),
 			});
 
 			return {

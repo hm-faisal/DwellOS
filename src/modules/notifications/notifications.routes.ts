@@ -33,4 +33,30 @@ router.patch(
 	NotificationController.updatePreferences,
 );
 
+router.put(
+	'/preferences',
+	authenticate,
+	validateRequest(updateNotificationPreferencesSchema),
+	NotificationController.updatePreferences,
+);
+
+const preferencesRouter = Router();
+
+preferencesRouter.get('/', authenticate, NotificationController.getPreferences);
+
+preferencesRouter.patch(
+	'/',
+	authenticate,
+	validateRequest(updateNotificationPreferencesSchema),
+	NotificationController.updatePreferences,
+);
+
+preferencesRouter.put(
+	'/',
+	authenticate,
+	validateRequest(updateNotificationPreferencesSchema),
+	NotificationController.updatePreferences,
+);
+
+export { preferencesRouter as notificationPreferencesRoutes };
 export default router;

@@ -1,5 +1,10 @@
 import { BusinessRuleError, NotFoundError } from '../../lib/errors.ts';
-import { paginateResults, prisma, recordAuditLog } from '../../lib/prisma.ts';
+import {
+	nowInstant,
+	paginateResults,
+	prisma,
+	recordAuditLog,
+} from '../../lib/prisma.ts';
 import type {
 	CreateMaintenanceInput,
 	RateMaintenanceInput,
@@ -29,8 +34,8 @@ export class MaintenanceService {
 			rating: null,
 			feedback: null,
 			resolvedAt: null,
-			createdAt: new Date(),
-			updatedAt: new Date(),
+			createdAt: nowInstant(),
+			updatedAt: nowInstant(),
 		});
 
 		await recordAuditLog(prisma, {
@@ -53,7 +58,7 @@ export class MaintenanceService {
 				channel: 'IN_APP',
 				isRead: false,
 				data: JSON.stringify({ maintenanceId: id, roomId }),
-				createdAt: new Date(),
+				createdAt: nowInstant(),
 			});
 		}
 
@@ -129,7 +134,7 @@ export class MaintenanceService {
 
 		const resolvedAt =
 			input.status === 'RESOLVED' && !request.resolvedAt
-				? new Date()
+				? nowInstant()
 				: request.resolvedAt;
 
 		const updated = await prisma.MaintenanceRequest.where({ id }).update({
@@ -137,7 +142,7 @@ export class MaintenanceService {
 			assignedToId: input.assignedToId ?? request.assignedToId,
 			feedback: input.feedback ?? request.feedback,
 			resolvedAt,
-			updatedAt: new Date(),
+			updatedAt: nowInstant(),
 		});
 
 		await recordAuditLog(prisma, {
@@ -166,7 +171,7 @@ export class MaintenanceService {
 				channel: 'IN_APP',
 				isRead: false,
 				data: JSON.stringify({ maintenanceId: id, status: input.status }),
-				createdAt: new Date(),
+				createdAt: nowInstant(),
 			});
 		}
 
@@ -187,9 +192,13 @@ export class MaintenanceService {
 			);
 		}
 
-		if (request.status !== 'RESOLVED' && request.status !== 'CLOSED') {
+		if (
+			request.status !== 'RESOLVED' &&
+			request.status !== 'CLOSED' &&
+			request.status !== 'IN_PROGRESS'
+		) {
 			throw new BusinessRuleError(
-				'Can only rate resolved or closed maintenance requests',
+				'Can only rate active or resolved maintenance requests',
 			);
 		}
 
@@ -197,7 +206,8 @@ export class MaintenanceService {
 			rating: input.rating,
 			feedback: input.feedback ?? request.feedback,
 			status: 'CLOSED',
-			updatedAt: new Date(),
+			resolvedAt: request.resolvedAt ?? nowInstant(),
+			updatedAt: nowInstant(),
 		});
 
 		await recordAuditLog(prisma, {

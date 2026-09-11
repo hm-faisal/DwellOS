@@ -27,6 +27,11 @@ router.patch(
 	validateRequest(updateAdminUserSchema),
 	AdminController.updateUser,
 );
+router.patch(
+	'/users/:id/role',
+	validateRequest(updateAdminUserSchema),
+	AdminController.updateUser,
+);
 
 router.get(
 	'/disputes',

@@ -33,7 +33,7 @@ flowchart TD
         L_Prop["2.1 Create Property<br/>POST /api/v1/properties"]:::landlord
         L_Room1["2.2 Add Room 1 to Property<br/>POST /api/v1/properties/:id/rooms"]:::landlord
         L_Room2["2.3 Add Room 2 to Property<br/>POST /api/v1/properties/:id/rooms"]:::landlord
-        L_Doc["2.4 Upload Property Documents<br/>POST /api/v1/documents"]:::landlord
+        L_Mgr["2.4 Assign Property Manager<br/>POST /api/v1/properties/:id/managers"]:::landlord
     end
 
     %% PHASE 3: DISCOVERY & VIEWING
@@ -60,8 +60,10 @@ flowchart TD
         L_Approve["5.4 Landlord Approves Application<br/>POST /api/v1/applications/:id/approve"]:::landlord
         
         L_Lease["5.5 Review Generated Lease Agreement<br/>GET /api/v1/leases/:id"]:::landlord
-        L_AddCoTenant["5.6 Add Tenant 2 as Co-Tenant<br/>POST /api/v1/leases/:id/tenants"]:::landlord
-        T1_Sign["5.7 Tenant 1 Signs & Accepts Lease<br/>PATCH /api/v1/leases/:id"]:::tenant
+        L_Doc["5.6 Upload Lease Agreement Document<br/>POST /api/v1/leases/:id/documents"]:::landlord
+        T1_SignDoc["5.7 Tenant 1 E-Signs Document<br/>POST /api/v1/documents/:id/sign"]:::tenant
+        L_AddCoTenant["5.8 Add Tenant 2 as Co-Tenant<br/>POST /api/v1/leases/:id/tenants"]:::landlord
+        T1_Sign["5.9 Activate Lease<br/>PATCH /api/v1/leases/:id"]:::tenant
     end
 
     %% PHASE 6: BILLING & PAYMENTS
@@ -93,13 +95,13 @@ flowchart TD
     P0 --> Phase1
     L_Reg & T1_Reg & T2_Reg & A_Login --> T1_Kyc --> A_KycApprove
     A_KycApprove --> Phase2
-    L_Prop --> L_Room1 & L_Room2 --> L_Doc
-    L_Doc --> Phase3
+    L_Prop --> L_Room1 & L_Room2 --> L_Mgr
+    L_Mgr --> Phase3
     T1_Search --> T1_RoomView --> T1_ViewReq --> L_ConfirmView
     L_ConfirmView --> Phase4
     T1_Profile & T2_Profile --> T1_Match --> T1_Express
     T1_Express --> Phase5
-    T1_Apply --> T1_AppDocs --> T2_Vote --> L_Approve --> L_Lease --> L_AddCoTenant --> T1_Sign
+    T1_Apply --> T1_AppDocs --> T2_Vote --> L_Approve --> L_Lease --> L_Doc --> T1_SignDoc --> L_AddCoTenant --> T1_Sign
     T1_Sign --> Phase6
     T1_Invoices --> T1_PayDeposit --> T1_PayRent
     L_Bill --> T1_ViewBill --> T1_PayBill
@@ -124,7 +126,8 @@ When manually testing using **Postman**, **Insomnia**, or **cURL**, capture and 
 | `{{PROPERTY_ID}}` | `POST /api/v1/properties` (`data.id`) | Create Room, Add Bills, Dashboard Property |
 | `{{ROOM_ID}}` | `POST /api/v1/properties/{{PROPERTY_ID}}/rooms` (`data.id`) | Viewing Request, Application, Maintenance |
 | `{{APPLICATION_ID}}` | `POST /api/v1/applications` (`data.id`) | Upload Docs, Approve Application |
-| `{{LEASE_ID}}` | `POST /api/v1/applications/{{APPLICATION_ID}}/approve` or `GET /api/v1/leases` | View Invoices, Sign Lease, Add Tenants |
+| `{{LEASE_ID}}` | `POST /api/v1/applications/{{APPLICATION_ID}}/approve` or `GET /api/v1/leases` | View Invoices, Sign Lease, Add Tenants, Documents |
+| `{{DOCUMENT_ID}}` | `POST /api/v1/leases/{{LEASE_ID}}/documents` (`data.id`) | Sign Document, View Audit Trail |
 | `{{INVOICE_ID}}` | `GET /api/v1/leases/{{LEASE_ID}}/invoices` (`data[0].id`) | Pay Rent via Stripe |
 | `{{BILL_ID}}` | `POST /api/v1/properties/{{PROPERTY_ID}}/bills` (`data.id`) | Check Shares, Pay Utility Bill |
 | `{{MAINT_ID}}` | `POST /api/v1/rooms/{{ROOM_ID}}/maintenance` (`data.id`) | Update Status, Rate Resolution |
@@ -264,6 +267,16 @@ Verify that the Express 5 server is running and connected to Neon PostgreSQL.
 ```
 * **Save:** `data.id` as `{{ROOM_ID}}`. Repeat to create Room 2 (`101-B`).
 
+#### 2.3 Landlord Assigns Property Manager
+* **Endpoint:** `POST /api/v1/properties/{{PROPERTY_ID}}/managers`
+* **Headers:** `Authorization: Bearer {{LANDLORD_TOKEN}}`
+* **Body:**
+```json
+{
+  "userId": "{{MANAGER_USER_ID}}"
+}
+```
+
 ---
 
 ### Phase 3: Public Search & Viewing Inquiries
@@ -380,7 +393,46 @@ Verify that the Express 5 server is running and connected to Neon PostgreSQL.
 ```
 * **Save:** `data.leaseId` or retrieve via `GET /api/v1/leases` as `{{LEASE_ID}}`.
 
-#### 5.3 Tenant Signs Lease
+#### 5.3 Landlord Attaches Lease Agreement Document
+* **Endpoint:** `POST /api/v1/leases/{{LEASE_ID}}/documents`
+* **Headers:** `Authorization: Bearer {{LANDLORD_TOKEN}}`
+* **Body:**
+```json
+{
+  "name": "Standard Residential Lease Agreement 2026",
+  "documentType": "LEASE_AGREEMENT",
+  "fileUrl": "https://storage.dwellos.com/documents/lease-101a-signed.pdf"
+}
+```
+* **Save:** `data.id` as `{{DOCUMENT_ID}}`.
+
+#### 5.4 Tenant 1 E-Signs Lease Document
+* **Endpoint:** `POST /api/v1/documents/{{DOCUMENT_ID}}/sign`
+* **Headers:** `Authorization: Bearer {{TENANT_1_TOKEN}}`
+* **Body:**
+```json
+{
+  "signatureData": "Alex Rivera // digital-sig-hash-99182a",
+  "signerName": "Alex Rivera"
+}
+```
+
+#### 5.5 Verify Immutable Document Audit Trail
+* **Endpoint:** `GET /api/v1/documents/{{DOCUMENT_ID}}/audit-log`
+* **Headers:** `Authorization: Bearer {{LANDLORD_TOKEN}}`
+* **Verify:** Returns timestamped signature event with IP and tamper-evident SHA hash.
+
+#### 5.6 Landlord Adds Co-Tenant to Lease
+* **Endpoint:** `POST /api/v1/leases/{{LEASE_ID}}/tenants`
+* **Headers:** `Authorization: Bearer {{LANDLORD_TOKEN}}`
+* **Body:**
+```json
+{
+  "userId": "{{TENANT_2_USER_ID}}"
+}
+```
+
+#### 5.7 Tenant Activates Lease Agreement
 * **Endpoint:** `PATCH /api/v1/leases/{{LEASE_ID}}`
 * **Headers:** `Authorization: Bearer {{TENANT_1_TOKEN}}`
 * **Body:**
@@ -515,11 +567,13 @@ Verify that the Express 5 server is running and connected to Neon PostgreSQL.
 | **Viewing** | Request tour, landlord confirmation | `[ PASS ]` |
 | **Roommate Matching** | Preferences matching, interest expression | `[ PASS ]` |
 | **Applications** | Submit application, document attachments, approval | `[ PASS ]` |
-| **Leases** | Lease generation, co-tenant assignment, signing | `[ PASS ]` |
-| **Rent & Invoices** | Monthly invoice retrieval | `[ PASS ]` |
-| **Payments** | Deposit and rent payment simulation | `[ PASS ]` |
+| **Leases** | Lease generation, co-tenant assignment, activation | `[ PASS ]` |
+| **Documents** | Rental document upload, digital signature, audit trail | `[ PASS ]` |
+| **Rent & Invoices** | Monthly invoice retrieval and payment status | `[ PASS ]` |
+| **Payments** | Deposit, rent, bill payments via Stripe & refund | `[ PASS ]` |
 | **Utility Bills** | Bill logging, automatic per-tenant split, payment | `[ PASS ]` |
-| **Maintenance** | Ticket filing, status lifecycle, 5-star rating | `[ PASS ]` |
-| **Notifications** | Read notifications, mark as read | `[ PASS ]` |
-| **Dashboard** | Landlord overview analytics | `[ PASS ]` |
-| **Admin** | User management, dispute resolution, audit trail | `[ PASS ]` |
+| **Maintenance** | Ticket filing, contractor dispatch, 5-star rating | `[ PASS ]` |
+| **Notifications** | Read notifications feed, mark as read | `[ PASS ]` |
+| **Notification Preferences** | Get & update user channel delivery preferences | `[ PASS ]` |
+| **Dashboard** | Landlord overview analytics & property KPIs | `[ PASS ]` |
+| **Admin** | User status management, dispute resolution, audit trail | `[ PASS ]` |

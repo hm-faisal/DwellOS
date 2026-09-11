@@ -348,11 +348,16 @@ export class RoommateMatchingService {
 			throw new NotFoundError('Room not found');
 		}
 
+		const approver = await prisma.User.first({ id: approverId });
+		if (!approver) {
+			throw new NotFoundError('Approver user not found');
+		}
+
 		let applicationId = input.applicationId ?? null;
 		if (!applicationId && input.applicantId) {
 			const app = await prisma.Application.first({
 				roomId,
-				applicantId: input.applicantId,
+				tenantId: input.applicantId,
 			});
 			if (app) {
 				applicationId = app.id;

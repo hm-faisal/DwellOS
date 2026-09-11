@@ -26,6 +26,13 @@ export function toInstant(
 ): Temporal.Instant | undefined {
 	if (!value) return undefined;
 	if (value instanceof Temporal.Instant) return value;
+	if (
+		typeof value === 'object' &&
+		(value.constructor?.name === 'Instant' ||
+			(value as any)[Symbol.toStringTag] === 'Temporal.Instant')
+	) {
+		return value as Temporal.Instant;
+	}
 	if (value instanceof Date) {
 		return Temporal.Instant.fromEpochMilliseconds(value.getTime());
 	}
@@ -34,6 +41,16 @@ export function toInstant(
 	}
 	if (typeof value === 'string') {
 		return Temporal.Instant.from(value);
+	}
+	if (typeof (value as any).toString === 'function') {
+		try {
+			const str = (value as any).toString();
+			if (str && str !== '[object Object]') {
+				return Temporal.Instant.from(str);
+			}
+		} catch {
+			// fall through
+		}
 	}
 	return undefined;
 }

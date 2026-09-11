@@ -10,7 +10,7 @@ export const payRentSchema = z.object({
 			invoiceId: z.string().trim().min(1, 'Invoice ID is required'),
 			idempotencyKey: z.string().trim().min(1).max(255).optional(),
 		})
-		.strict(),
+		.passthrough(),
 });
 
 export const payBillSchema = z.object({
@@ -19,7 +19,7 @@ export const payBillSchema = z.object({
 			billShareId: z.string().trim().min(1, 'Bill share ID is required'),
 			idempotencyKey: z.string().trim().min(1).max(255).optional(),
 		})
-		.strict(),
+		.passthrough(),
 });
 
 export const payDepositSchema = z.object({
@@ -29,23 +29,23 @@ export const payDepositSchema = z.object({
 			amount: z.number().int().positive().max(100000000).optional(), // In integer minor units (cents)
 			idempotencyKey: z.string().trim().min(1).max(255).optional(),
 		})
-		.strict(),
+		.passthrough(),
 });
 
 export const refundPaymentSchema = z.object({
 	params: z
 		.object({
-			id: z.string().trim().min(1, 'Payment ID is required'),
+			id: z.string().trim().min(1).optional(),
 		})
-		.strict(),
+		.passthrough()
+		.optional(),
 	body: z
 		.object({
+			paymentId: z.string().trim().min(1).optional(),
 			amount: z.number().int().positive().max(100000000).optional(), // In cents; if omitted, full refund
-			reason: z
-				.enum(['duplicate', 'fraudulent', 'requested_by_customer'])
-				.optional(),
+			reason: z.string().trim().optional(),
 		})
-		.strict()
+		.passthrough()
 		.optional(),
 });
 
@@ -54,7 +54,7 @@ export const paymentIdParamSchema = z.object({
 		.object({
 			id: z.string().trim().min(1, 'Payment ID is required'),
 		})
-		.strict(),
+		.passthrough(),
 });
 
 export type PayRentInput = z.infer<typeof payRentSchema>['body'];

@@ -1,4 +1,10 @@
-import { db, nowInstant, recordAuditLog, toInstant } from '../lib/prisma.ts';
+import {
+	db,
+	getOrmClient,
+	nowInstant,
+	recordAuditLog,
+	toInstant,
+} from '../lib/prisma.ts';
 
 /**
  * Generates monthly/recurring RentInvoice records for all ACTIVE leases.
@@ -9,7 +15,7 @@ export async function generateRentInvoicesJob(): Promise<void> {
 	const jsNow = new Date();
 
 	await db.transaction(async (tx) => {
-		const txPrisma = ((tx.orm as any).public ?? tx.orm) as any;
+		const txPrisma = getOrmClient(tx);
 
 		const activeLeases = await txPrisma.Lease.where({ status: 'ACTIVE' }).all();
 

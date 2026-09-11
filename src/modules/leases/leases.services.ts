@@ -5,13 +5,79 @@ import {
 } from '../../lib/errors.ts';
 import {
 	db,
+	getOrmClient,
+	nowInstant,
 	paginateResults,
 	prisma,
 	recordAuditLog,
+	toInstant,
 } from '../../lib/prisma.ts';
-import type { AddTenantInput, UpdateLeaseInput } from './leases.schemas.ts';
+import type {
+	AddTenantInput,
+	CreateLeaseInput,
+	UpdateLeaseInput,
+} from './leases.schemas.ts';
 
 export class LeaseService {
+	async createLease(input: CreateLeaseInput, actorId: string) {
+		const room = await prisma.Room.first({ id: input.roomId });
+		if (!room) throw new NotFoundError('Room not found');
+
+		return await db.transaction(async (tx) => {
+			const txPrisma = getOrmClient(tx);
+
+			const leaseId = crypto.randomUUID();
+			const lease = await txPrisma.Lease.create({
+				id: leaseId,
+				propertyId: room.propertyId,
+				roomId: input.roomId,
+				startDate: toInstant(input.startDate)!,
+				endDate: toInstant(input.endDate)!,
+				rent: input.rent,
+				deposit: input.deposit,
+				billingCycle: input.billingCycle,
+				billingCycleDay: input.billingCycleDay,
+				status: 'ACTIVE',
+				createdAt: nowInstant(),
+				updatedAt: nowInstant(),
+			});
+
+			// Create LeaseTenants
+			for (let i = 0; i < input.tenantIds.length; i++) {
+				const tId = input.tenantIds[i];
+				await txPrisma.LeaseTenant.create({
+					id: crypto.randomUUID(),
+					leaseId,
+					tenantId: tId,
+					isPrimary: i === 0,
+					joinedAt: nowInstant(),
+				});
+			}
+
+			// Update room occupancy
+			const nextOccupied = Math.min(room.totalSlots, room.occupiedSlots + 1);
+			const nextStatus =
+				nextOccupied >= room.totalSlots ? 'OCCUPIED' : room.status;
+
+			await txPrisma.Room.where({ id: room.id }).update({
+				occupiedSlots: nextOccupied,
+				status: nextStatus,
+				version: room.version + 1,
+				updatedAt: nowInstant(),
+			});
+
+			await recordAuditLog(txPrisma, {
+				actorId,
+				entityType: 'Lease',
+				entityId: leaseId,
+				action: 'LEASE_CREATED',
+				afterState: lease,
+			});
+
+			return lease;
+		});
+	}
+
 	async listLeases(
 		user: { id: string; role: string },
 		query?: {
@@ -113,7 +179,7 @@ export class LeaseService {
 
 	async updateLease(id: string, input: UpdateLeaseInput, actorId: string) {
 		return await db.transaction(async (tx) => {
-			const txPrisma = ((tx.orm as any).public ?? tx.orm) as any;
+			const txPrisma = getOrmClient(tx);
 			const lease = await txPrisma.Lease.first({ id });
 			if (!lease) {
 				throw new NotFoundError('Lease not found');
@@ -122,7 +188,7 @@ export class LeaseService {
 			if (input.action === 'TERMINATE') {
 				const updatedLease = await txPrisma.Lease.where({ id }).update({
 					status: 'TERMINATED',
-					updatedAt: new Date(),
+					updatedAt: nowInstant(),
 				});
 
 				// Revert room occupancy if no other active leases on this room
@@ -136,7 +202,7 @@ export class LeaseService {
 							occupiedSlots: nextOccupied,
 							status: nextStatus,
 							version: room.version + 1,
-							updatedAt: new Date(),
+							updatedAt: nowInstant(),
 						},
 					);
 
@@ -178,19 +244,29 @@ export class LeaseService {
 					);
 				}
 
-				const updatedLease = await txPrisma.Lease.where({ id }).update({
-					endDate: new Date(input.newEndDate),
+				const updateData: Record<string, unknown> = {
+					endDate: toInstant(input.newEndDate)!,
 					status: 'ACTIVE',
-					updatedAt: new Date(),
-				});
+					updatedAt: nowInstant(),
+				};
+				if (input.newRentAmount) {
+					updateData.rent = input.newRentAmount;
+				}
+
+				const updatedLease = await txPrisma.Lease.where({ id }).update(
+					updateData,
+				);
 
 				await recordAuditLog(txPrisma, {
 					actorId,
 					entityType: 'Lease',
 					entityId: id,
 					action: 'LEASE_RENEWED',
-					beforeState: { endDate: lease.endDate },
-					afterState: { endDate: updatedLease.endDate },
+					beforeState: { endDate: lease.endDate, rent: lease.rent },
+					afterState: {
+						endDate: updatedLease.endDate,
+						rent: updatedLease.rent,
+					},
 				});
 
 				return updatedLease;
@@ -223,7 +299,7 @@ export class LeaseService {
 			id: crypto.randomUUID(),
 			leaseId,
 			tenantId: input.userId,
-			joinedAt: new Date(),
+			joinedAt: nowInstant(),
 			isPrimary: input.isPrimary,
 		});
 
@@ -248,7 +324,7 @@ export class LeaseService {
 		}
 
 		await prisma.LeaseTenant.where({ leaseId, tenantId: userId }).update({
-			leftAt: new Date(),
+			leftAt: nowInstant(),
 		});
 
 		await recordAuditLog(prisma, {

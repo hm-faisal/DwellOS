@@ -10,7 +10,12 @@ function normalizeDates<T>(obj: T): T {
 			obj.getTime(),
 		) as unknown as T;
 	}
-	if (obj instanceof Temporal.Instant) return obj;
+	if (
+		obj instanceof Temporal.Instant ||
+		(obj as any)?.constructor?.name === 'Instant'
+	) {
+		return obj;
+	}
 	if (Array.isArray(obj)) {
 		return obj.map(normalizeDates) as unknown as T;
 	}
@@ -39,6 +44,14 @@ function wrapFieldProxy(fieldObj: any): any {
 
 export function wrapOrmClient<T extends object>(target: T): T {
 	if (!target || typeof target !== 'object') return target;
+	if (
+		target instanceof Error ||
+		target instanceof Date ||
+		target instanceof Temporal.Instant ||
+		(target as any)?.constructor?.name === 'Instant'
+	) {
+		return target;
+	}
 	return new Proxy(target, {
 		get(modelTarget: any, modelProp: string | symbol) {
 			const orig = modelTarget[modelProp];
@@ -55,7 +68,13 @@ export function wrapOrmClient<T extends object>(target: T): T {
 						return normalizeDates(arg);
 					});
 					const res = orig.apply(modelTarget, mappedArgs);
-					return res && typeof res === 'object' ? wrapOrmClient(res) : res;
+					if (res && typeof res === 'object') {
+						if (typeof (res as any).then === 'function') {
+							return res;
+						}
+						return wrapOrmClient(res);
+					}
+					return res;
 				};
 			}
 			if (orig && typeof orig === 'object') {

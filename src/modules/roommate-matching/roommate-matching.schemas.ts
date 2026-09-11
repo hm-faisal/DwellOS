@@ -28,7 +28,9 @@ export const upsertProfileSchema = z.object({
 			preferredCity: z.string().trim().optional(),
 			dietaryPref: z.string().trim().optional(),
 			socialLevel: z.union([z.number(), z.string()]).optional(),
-			lifestyleTraits: z.record(z.string(), z.unknown()).optional(),
+			lifestyleTraits: z
+				.union([z.array(z.string().trim()), z.record(z.string(), z.unknown())])
+				.optional(),
 		})
 		.passthrough()
 		.transform((val) => {
@@ -78,11 +80,17 @@ export const upsertProfileSchema = z.object({
 				if (!tags.includes(socialTag)) tags.push(socialTag);
 			}
 			if (val.lifestyleTraits) {
-				for (const [k, v] of Object.entries(val.lifestyleTraits)) {
-					if (typeof v === 'boolean' && v) {
-						tags.push(k.charAt(0).toUpperCase() + k.slice(1));
-					} else if (typeof v === 'string' || typeof v === 'number') {
-						tags.push(`${k}: ${v}`);
+				if (Array.isArray(val.lifestyleTraits)) {
+					for (const trait of val.lifestyleTraits) {
+						if (!tags.includes(trait)) tags.push(trait);
+					}
+				} else {
+					for (const [k, v] of Object.entries(val.lifestyleTraits)) {
+						if (typeof v === 'boolean' && v) {
+							tags.push(k.charAt(0).toUpperCase() + k.slice(1));
+						} else if (typeof v === 'string' || typeof v === 'number') {
+							tags.push(`${k}: ${v}`);
+						}
 					}
 				}
 			}
@@ -144,7 +152,8 @@ export const expressInterestSchema = z.object({
 export const roommateApprovalSchema = z.object({
 	params: z
 		.object({
-			id: z.string().trim().min(1, 'Room ID is required'),
+			id: z.string().trim().min(1).optional(),
+			roomId: z.string().trim().min(1).optional(),
 		})
 		.passthrough(),
 	body: z

@@ -4,14 +4,41 @@ export const createApplicationSchema = z.object({
 	body: z
 		.object({
 			roomId: z.string().trim().min(1, 'Room ID is required'),
-			moveInDate: z.string().trim().min(1, 'Move in date is required'),
-			personalInfo: z.record(z.string(), z.unknown()).optional(),
-			employment: z.record(z.string(), z.unknown()).optional(),
-			references: z.record(z.string(), z.unknown()).optional(),
-			holdHours: z.number().int().min(1).max(72).default(24),
+			moveInDate: z.string().trim().min(1).optional(),
+			desiredMoveIn: z.string().trim().min(1).optional(),
+			leaseTermMonths: z.number().int().positive().optional(),
+			personalInfo: z
+				.union([z.record(z.string(), z.unknown()), z.string()])
+				.optional(),
+			employment: z
+				.union([z.record(z.string(), z.unknown()), z.string()])
+				.optional(),
+			references: z
+				.union([
+					z.record(z.string(), z.unknown()),
+					z.array(z.unknown()),
+					z.string(),
+				])
+				.optional(),
+			documents: z
+				.array(z.union([z.string(), z.record(z.string(), z.unknown())]))
+				.optional(),
+			holdHours: z.number().int().min(1).max(168).default(72),
 			notes: z.string().trim().max(2000).optional(),
 		})
-		.strict(),
+		.passthrough()
+		.transform((val) => ({
+			roomId: val.roomId,
+			moveInDate:
+				val.moveInDate ?? val.desiredMoveIn ?? new Date().toISOString(),
+			personalInfo: val.personalInfo,
+			employment: val.employment,
+			references: val.references,
+			documents: val.documents,
+			leaseTermMonths: val.leaseTermMonths,
+			holdHours: val.holdHours ?? 72,
+			notes: val.notes,
+		})),
 });
 
 export const listApplicationsQuerySchema = z.object({
@@ -84,11 +111,11 @@ export const approveApplicationSchema = z.object({
 		.object({
 			id: z.string().trim().min(1, 'Application ID is required'),
 		})
-		.strict(),
+		.passthrough(),
 	body: z
 		.object({
-			leaseStartDate: z.string().trim().min(1, 'Lease start date is required'),
-			leaseEndDate: z.string().trim().min(1, 'Lease end date is required'),
+			leaseStartDate: z.string().trim().min(1).optional(),
+			leaseEndDate: z.string().trim().min(1).optional(),
 			rent: z.number().int().positive().max(100000000).optional(),
 			deposit: z.number().int().nonnegative().max(100000000).optional(),
 			billingCycle: z
@@ -97,8 +124,9 @@ export const approveApplicationSchema = z.object({
 			billingDayOfMonth: z.number().int().min(1).max(28).default(1),
 			expectedRoomVersion: z.number().int().positive().optional(),
 		})
-		.strict()
-		.optional(),
+		.passthrough()
+		.optional()
+		.default({}),
 });
 
 export type CreateApplicationInput = z.infer<

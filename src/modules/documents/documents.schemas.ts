@@ -5,7 +5,7 @@ export const uploadDocumentSchema = z.object({
 		.object({
 			id: z.string().trim().min(1, 'Lease ID is required'),
 		})
-		.strict(),
+		.passthrough(),
 	body: z
 		.object({
 			title: z.string().trim().min(1, 'Title is required').max(200),
@@ -18,7 +18,7 @@ export const uploadDocumentSchema = z.object({
 			fileUrl: z.string().trim().min(1, 'File URL is required'),
 			version: z.number().int().positive().default(1),
 		})
-		.strict(),
+		.passthrough(),
 });
 
 export const documentIdParamSchema = z.object({
@@ -26,7 +26,7 @@ export const documentIdParamSchema = z.object({
 		.object({
 			id: z.string().trim().min(1, 'Document ID is required'),
 		})
-		.strict(),
+		.passthrough(),
 });
 
 export const signDocumentSchema = z.object({
@@ -34,12 +34,16 @@ export const signDocumentSchema = z.object({
 		.object({
 			id: z.string().trim().min(1, 'Document ID is required'),
 		})
-		.strict(),
+		.passthrough(),
 	body: z
 		.object({
 			signatureUrl: z.string().trim().min(1).optional(),
+			signature: z.string().trim().min(1).optional(),
 		})
-		.strict()
+		.passthrough()
+		.transform((val) => ({
+			signatureUrl: val.signatureUrl ?? val.signature,
+		}))
 		.optional(),
 });
 

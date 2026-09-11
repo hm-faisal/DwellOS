@@ -1,5 +1,11 @@
 import { ForbiddenError, NotFoundError } from '../../lib/errors.ts';
-import { paginateResults, prisma, recordAuditLog } from '../../lib/prisma.ts';
+import {
+	nowInstant,
+	paginateResults,
+	prisma,
+	recordAuditLog,
+	toInstant,
+} from '../../lib/prisma.ts';
 import type {
 	CreateViewingRequestInput,
 	UpdateViewingRequestInput,
@@ -21,12 +27,14 @@ export class ViewingRequestService {
 			roomId: input.roomId,
 			tenantId,
 			type: input.type,
-			preferredDate: new Date(input.preferredDate),
-			alternateDate: input.alternateDate ? new Date(input.alternateDate) : null,
+			preferredDate: toInstant(input.preferredDate)!,
+			alternateDate: input.alternateDate
+				? toInstant(input.alternateDate)
+				: null,
 			notes: input.notes ?? null,
 			status: 'REQUESTED',
-			createdAt: new Date(),
-			updatedAt: new Date(),
+			createdAt: nowInstant(),
+			updatedAt: nowInstant(),
 		});
 
 		// Notify property owner
@@ -41,11 +49,29 @@ export class ViewingRequestService {
 				channel: 'IN_APP',
 				isRead: false,
 				data: JSON.stringify({ viewingRequestId: id, roomId: room.id }),
-				createdAt: new Date(),
+				createdAt: nowInstant(),
 			});
 		}
 
 		return viewing;
+	}
+
+	async getViewingRequestById(id: string, _user: { id: string; role: string }) {
+		const viewing = await prisma.ViewingRequest.first({ id });
+		if (!viewing) {
+			throw new NotFoundError('Viewing request not found');
+		}
+
+		const room = await prisma.Room.first({ id: viewing.roomId });
+		const tenant = await prisma.User.first({ id: viewing.tenantId });
+
+		return {
+			...viewing,
+			room,
+			tenant: tenant
+				? { id: tenant.id, name: tenant.name, email: tenant.email }
+				: null,
+		};
 	}
 
 	async listViewingRequests(
@@ -113,10 +139,10 @@ export class ViewingRequestService {
 		const updated = await prisma.ViewingRequest.where({ id }).update({
 			status: input.status,
 			alternateDate: input.alternateDate
-				? new Date(input.alternateDate)
+				? toInstant(input.alternateDate)
 				: viewing.alternateDate,
 			notes: input.notes ?? viewing.notes,
-			updatedAt: new Date(),
+			updatedAt: nowInstant(),
 		});
 
 		await recordAuditLog(prisma, {
@@ -138,7 +164,7 @@ export class ViewingRequestService {
 			channel: 'IN_APP',
 			isRead: false,
 			data: JSON.stringify({ viewingRequestId: id, status: input.status }),
-			createdAt: new Date(),
+			createdAt: nowInstant(),
 		});
 
 		return updated;

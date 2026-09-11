@@ -6,6 +6,7 @@ import {
 	createViewingRequestSchema,
 	listViewingRequestsQuerySchema,
 	updateViewingRequestSchema,
+	viewingRequestIdParamSchema,
 } from './viewing-requests.schemas.ts';
 
 const router = Router();
@@ -24,8 +25,22 @@ router.get(
 	ViewingRequestController.listViewingRequests,
 );
 
+router.get(
+	'/:id',
+	authenticate,
+	validateRequest(viewingRequestIdParamSchema),
+	ViewingRequestController.getViewingRequest,
+);
+
 router.patch(
 	'/:id',
+	authenticate,
+	validateRequest(updateViewingRequestSchema),
+	ViewingRequestController.updateViewingRequest,
+);
+
+router.patch(
+	'/:id/status',
 	authenticate,
 	validateRequest(updateViewingRequestSchema),
 	ViewingRequestController.updateViewingRequest,

@@ -52,7 +52,7 @@ const payDeposit = catchAsync(async (req: Request, res: Response) => {
 });
 
 const refund = catchAsync(async (req: Request, res: Response) => {
-	const id = req.params.id as string;
+	const id = (req.params.id || req.body.paymentId) as string;
 	const payload = req.body;
 	const user = req.user!;
 	const result = await paymentService.refund(id, payload, user.id);

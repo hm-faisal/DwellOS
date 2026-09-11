@@ -1,5 +1,5 @@
 import { ForbiddenError, NotFoundError } from '../../lib/errors.ts';
-import { prisma, recordAuditLog } from '../../lib/prisma.ts';
+import { nowInstant, prisma, recordAuditLog } from '../../lib/prisma.ts';
 import type {
 	SubmitVerificationInput,
 	UpdateVerificationInput,
@@ -17,8 +17,8 @@ export class VerificationService {
 			reviewerId: null,
 			notes: input.notes ?? null,
 			data: input.data ? JSON.stringify(input.data) : null,
-			createdAt: new Date(),
-			updatedAt: new Date(),
+			createdAt: nowInstant(),
+			updatedAt: nowInstant(),
 		});
 
 		await recordAuditLog(prisma, {
@@ -82,7 +82,7 @@ export class VerificationService {
 			status: input.status,
 			reviewerId,
 			notes: input.notes ?? verification.notes,
-			updatedAt: new Date(),
+			updatedAt: nowInstant(),
 		});
 
 		await recordAuditLog(prisma, {
@@ -104,7 +104,7 @@ export class VerificationService {
 			channel: 'IN_APP',
 			isRead: false,
 			data: JSON.stringify({ verificationId: id, status: input.status }),
-			createdAt: new Date(),
+			createdAt: nowInstant(),
 		});
 
 		return updated;

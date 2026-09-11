@@ -63,7 +63,7 @@ const expressInterest = catchAsync(async (req: Request, res: Response) => {
 });
 
 const roommateApproval = catchAsync(async (req: Request, res: Response) => {
-	const roomId = req.params.id as string;
+	const roomId = (req.params.id || req.params.roomId) as string;
 	const payload = req.body;
 	const user = req.user!;
 	const result = await roommateMatchingService.approveRoommate(

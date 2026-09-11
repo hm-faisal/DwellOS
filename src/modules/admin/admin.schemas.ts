@@ -5,7 +5,7 @@ export const listUsersQuerySchema = z.object({
 		.object({
 			cursor: z.string().trim().min(1).optional(),
 			limit: z.coerce.number().int().min(1).max(100).default(20),
-			role: z.enum(['TENANT', 'OWNER', 'ADMIN']).optional(),
+			role: z.enum(['TENANT', 'OWNER', 'PROPERTY_MANAGER', 'ADMIN']).optional(),
 			status: z.enum(['ACTIVE', 'SUSPENDED', 'BANNED']).optional(),
 			search: z.string().trim().max(100).optional(),
 		})
@@ -21,7 +21,7 @@ export const updateAdminUserSchema = z.object({
 		.strict(),
 	body: z
 		.object({
-			role: z.enum(['TENANT', 'OWNER', 'ADMIN']).optional(),
+			role: z.enum(['TENANT', 'OWNER', 'PROPERTY_MANAGER', 'ADMIN']).optional(),
 			status: z.enum(['ACTIVE', 'SUSPENDED', 'BANNED']).optional(),
 			name: z.string().trim().min(2).max(100).optional(),
 			phone: z.string().trim().max(25).optional(),
