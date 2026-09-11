@@ -1,7 +1,7 @@
 import { db } from '../prisma/db.ts';
-import { nowInstant, Temporal, toInstant } from './temporal.ts';
+import { nowInstant, Temporal, toDate, toInstant } from './temporal.ts';
 
-export { db, nowInstant, Temporal, toInstant };
+export { db, nowInstant, Temporal, toDate, toInstant };
 
 function normalizeDates<T>(obj: T): T {
 	if (!obj || typeof obj !== 'object') return obj;

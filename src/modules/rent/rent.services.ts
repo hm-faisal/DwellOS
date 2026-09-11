@@ -1,5 +1,5 @@
 import { NotFoundError } from '../../lib/errors.ts';
-import { paginateResults, prisma } from '../../lib/prisma.ts';
+import { paginateResults, prisma, toDate } from '../../lib/prisma.ts';
 
 export class RentService {
 	async getInvoicesByLease(
@@ -78,7 +78,7 @@ export class RentService {
 		}
 		userInvoices.sort(
 			(a: any, b: any) =>
-				new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(),
+				toDate(b.dueDate).getTime() - toDate(a.dueDate).getTime(),
 		);
 
 		return paginateResults(userInvoices, limit);

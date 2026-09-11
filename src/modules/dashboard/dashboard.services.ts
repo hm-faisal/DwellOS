@@ -1,5 +1,5 @@
 import { NotFoundError } from '../../lib/errors.ts';
-import { prisma } from '../../lib/prisma.ts';
+import { prisma, toDate } from '../../lib/prisma.ts';
 
 export class DashboardService {
 	async getPortfolioOverview(userId: string, userRole: string) {
@@ -131,7 +131,7 @@ export class DashboardService {
 		// Leases expiring within next 60 days
 		const sixtyDaysOut = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
 		const expiringSoon = activeLeases.filter(
-			(l: any) => new Date(l.endDate) <= sixtyDaysOut,
+			(l: any) => toDate(l.endDate) <= sixtyDaysOut,
 		);
 
 		// Financials

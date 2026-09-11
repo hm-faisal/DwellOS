@@ -3,6 +3,7 @@ import {
 	getOrmClient,
 	nowInstant,
 	recordAuditLog,
+	toDate,
 	toInstant,
 } from '../lib/prisma.ts';
 
@@ -42,7 +43,7 @@ export async function generateRentInvoicesJob(): Promise<void> {
 				leaseId: lease.id,
 			}).all();
 			const alreadyBilled = existingInvoices.some((inv: any) => {
-				const start = new Date(inv.periodStart);
+				const start = toDate(inv.periodStart);
 				return (
 					start.getFullYear() === currentYear &&
 					start.getMonth() === currentMonth

@@ -54,3 +54,33 @@ export function toInstant(
 	}
 	return undefined;
 }
+
+/**
+ * Converts a Date, Temporal.Instant, epoch milliseconds, or ISO string into a standard JavaScript Date.
+ * Prevents TypeError: Cannot use valueOf when converting TC39 Temporal.Instant instances.
+ */
+export function toDate(
+	value?: Date | string | number | Temporal.Instant | null,
+): Date {
+	if (!value) return new Date();
+	if (value instanceof Date) return value;
+	if (
+		value instanceof Temporal.Instant ||
+		typeof (value as any)?.epochMilliseconds === 'number'
+	) {
+		return new Date((value as any).epochMilliseconds);
+	}
+	if (typeof value === 'number') return new Date(value);
+	if (typeof value === 'string') return new Date(value);
+	if (typeof (value as any)?.toString === 'function') {
+		try {
+			const str = (value as any).toString();
+			if (str && str !== '[object Object]') {
+				return new Date(str);
+			}
+		} catch {
+			// fall through
+		}
+	}
+	return new Date(String(value));
+}

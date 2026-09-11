@@ -1,4 +1,10 @@
-import { db, getOrmClient, nowInstant, recordAuditLog } from '../lib/prisma.ts';
+import {
+	db,
+	getOrmClient,
+	nowInstant,
+	recordAuditLog,
+	toDate,
+} from '../lib/prisma.ts';
 
 /**
  * Sends rent-due reminders (e.g. 3 days before due date) and overdue reminders.
@@ -16,7 +22,7 @@ export async function sendRemindersJob(): Promise<void> {
 		).all();
 
 		for (const invoice of dueInvoices) {
-			const dueDate = new Date(String(invoice.dueDate));
+			const dueDate = toDate(invoice.dueDate);
 			const gracePeriodEnd = new Date(
 				dueDate.getTime() +
 					(invoice.gracePeriodDays || 5) * 24 * 60 * 60 * 1000,
