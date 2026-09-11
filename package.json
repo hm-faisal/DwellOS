@@ -15,6 +15,7 @@
     "composer:dev": "prisma dev module.ts",
     "contract:emit": "prisma contract emit",
     "db:init": "prisma db init",
+    "db:seed": "tsx src/prisma/seed.ts",
     "db:update": "prisma db update",
     "db:verify": "prisma db verify",
     "deploy": "pnpm run build && pnpm run composer:deploy",
