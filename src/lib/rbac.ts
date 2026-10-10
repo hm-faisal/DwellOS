@@ -1,5 +1,10 @@
 import type { NextFunction, Request, Response } from 'express';
-import { ForbiddenError, NotFoundError, UnauthorizedError } from './errors.ts';
+import {
+	EmailVerificationRequiredError,
+	ForbiddenError,
+	NotFoundError,
+	UnauthorizedError,
+} from './errors.ts';
 import { prisma } from './prisma.ts';
 
 export type UserRole = 'TENANT' | 'OWNER' | 'ADMIN';
@@ -46,8 +51,12 @@ export const requireRoles = (...roles: UserRole[]) => {
 
 /**
  * Checks if user is Owner, Manager, or Admin for propertyId in req.params[paramKey] or req.body[paramKey]
+ * Optionally verifies manager has requiredPermission (e.g. MANAGE_ROOMS, MANAGE_APPLICATIONS, MANAGE_MAINTENANCE)
  */
-export const requirePropertyScope = (paramKey = 'id') => {
+export const requirePropertyScope = (
+	paramKey = 'id',
+	requiredPermission?: string,
+) => {
 	return async (req: Request, _res: Response, next: NextFunction) => {
 		try {
 			if (!req.user) {
@@ -88,6 +97,18 @@ export const requirePropertyScope = (paramKey = 'id') => {
 			});
 
 			if (manager) {
+				if (
+					requiredPermission &&
+					Array.isArray(manager.permissions) &&
+					!manager.permissions.includes(requiredPermission)
+				) {
+					return next(
+						new ForbiddenError(
+							`You lack the required manager permission: ${requiredPermission}`,
+						),
+					);
+				}
+
 				req.scope = {
 					propertyId,
 					isOwner: false,
@@ -110,8 +131,12 @@ export const requirePropertyScope = (paramKey = 'id') => {
 
 /**
  * Checks if user is Owner/Manager/Admin for the room in req.params[paramKey]
+ * Optionally verifies manager has requiredPermission
  */
-export const requireRoomScope = (paramKey = 'id') => {
+export const requireRoomScope = (
+	paramKey = 'id',
+	requiredPermission?: string,
+) => {
 	return async (req: Request, _res: Response, next: NextFunction) => {
 		try {
 			if (!req.user) {
@@ -154,6 +179,18 @@ export const requireRoomScope = (paramKey = 'id') => {
 			});
 
 			if (manager) {
+				if (
+					requiredPermission &&
+					Array.isArray(manager.permissions) &&
+					!manager.permissions.includes(requiredPermission)
+				) {
+					return next(
+						new ForbiddenError(
+							`You lack the required manager permission: ${requiredPermission}`,
+						),
+					);
+				}
+
 				req.scope = {
 					propertyId: property.id,
 					isOwner: false,
@@ -274,3 +311,61 @@ export const requireSelfOrAdmin = (paramKey = 'id') => {
 		next();
 	};
 };
+
+/**
+ * Enforces email verification requirement (Option B - Tiered Access Control)
+ * Returns 403 EMAIL_VERIFICATION_REQUIRED if user.isEmailVerified is false.
+ * ADMINs bypass this check.
+ */
+export const requireVerifiedEmail = (
+	req: Request,
+	_res: Response,
+	next: NextFunction,
+) => {
+	if (!req.user) {
+		return next(new UnauthorizedError('Authentication required'));
+	}
+
+	if (req.user.role === 'ADMIN') {
+		return next();
+	}
+
+	if (!req.user.isEmailVerified) {
+		return next(
+			new EmailVerificationRequiredError(
+				'Email verification is required to perform this action. Please verify your email address.',
+			),
+		);
+	}
+
+	next();
+};
+
+/**
+ * Enforces active Roommate context (Tenant with an active lease on a SHARED room)
+ * ADMIN bypasses check.
+ */
+export const requireRoommate = (
+	req: Request,
+	_res: Response,
+	next: NextFunction,
+) => {
+	if (!req.user) {
+		return next(new UnauthorizedError('Authentication required'));
+	}
+
+	if (req.user.role === 'ADMIN' || req.user.role === 'OWNER') {
+		return next();
+	}
+
+	if (!req.user.isRoommate) {
+		return next(
+			new ForbiddenError(
+				'This action requires an active roommate status in a shared room',
+			),
+		);
+	}
+
+	next();
+};
+

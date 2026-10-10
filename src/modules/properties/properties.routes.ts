@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { authenticate } from '../../lib/auth-middleware.ts';
-import { requirePropertyScope, requireRoles } from '../../lib/rbac.ts';
+import {
+	requirePropertyScope,
+	requireRoles,
+	requireVerifiedEmail,
+} from '../../lib/rbac.ts';
 import { validateRequest } from '../../middlewares/validateRequest.middleware.ts';
 import { PropertyController } from './properties.controllers.ts';
 import {
@@ -17,6 +21,7 @@ const router = Router();
 router.post(
 	'/',
 	authenticate,
+	requireVerifiedEmail,
 	requireRoles('OWNER', 'ADMIN'),
 	validateRequest(createPropertySchema),
 	PropertyController.createProperty,

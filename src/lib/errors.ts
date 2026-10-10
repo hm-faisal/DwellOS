@@ -31,6 +31,21 @@ export class ValidationError extends AppError {
 	}
 }
 
+export class BadRequestError extends AppError {
+	constructor(message = 'Bad request', details?: ErrorDetails) {
+		super(400, 'BAD_REQUEST', message, details);
+	}
+}
+
+export class EmailVerificationRequiredError extends AppError {
+	constructor(
+		message = 'Email verification is required to perform this action',
+		details?: ErrorDetails,
+	) {
+		super(403, 'EMAIL_VERIFICATION_REQUIRED', message, details);
+	}
+}
+
 export class UnauthorizedError extends AppError {
 	constructor(message = 'Authentication required', details?: ErrorDetails) {
 		super(401, 'UNAUTHORIZED', message, details);

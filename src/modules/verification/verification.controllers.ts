@@ -50,7 +50,7 @@ const updateVerificationStatus = catchAsync(
 const getVerificationById = catchAsync(async (req: Request, res: Response) => {
 	const id = req.params.id as string;
 	const user = req.user!;
-	const result = await verificationService.getVerificationById(id, user);
+	const result = await verificationService.getVerificationById(id, user, req.ip);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,

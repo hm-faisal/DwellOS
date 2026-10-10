@@ -32,6 +32,10 @@
       "model": "DocumentSignature",
       "namespace": "public"
     },
+    "emailVerificationToken": {
+      "model": "EmailVerificationToken",
+      "namespace": "public"
+    },
     "lease": {
       "model": "Lease",
       "namespace": "public"
@@ -993,6 +997,83 @@
               },
               "namespaceId": "public",
               "table": "documentSignature"
+            }
+          },
+          "EmailVerificationToken": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "expiresAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "tokenHash": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "expiresAt": {
+                  "column": "expiresAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "tokenHash": {
+                  "column": "tokenHash"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "emailVerificationToken"
             }
           },
           "Lease": {
@@ -3504,10 +3585,31 @@
                   "kind": "scalar"
                 }
               },
+              "emailVerifiedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "googleId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
                   "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "isEmailVerified": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
                   "kind": "scalar"
                 }
               },
@@ -3641,6 +3743,21 @@
                 },
                 "to": {
                   "model": "DocumentSignature",
+                  "namespace": "public"
+                }
+              },
+              "emailVerificationTokens": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "EmailVerificationToken",
                   "namespace": "public"
                 }
               },
@@ -3863,8 +3980,17 @@
                 "email": {
                   "column": "email"
                 },
+                "emailVerifiedAt": {
+                  "column": "emailVerifiedAt"
+                },
+                "googleId": {
+                  "column": "googleId"
+                },
                 "id": {
                   "column": "id"
+                },
+                "isEmailVerified": {
+                  "column": "isEmailVerified"
                 },
                 "name": {
                   "column": "name"
@@ -5113,6 +5239,83 @@
               },
               "uniques": []
             },
+            "emailVerificationToken": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "expiresAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "tokenHash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "name": "emailVerificationToken_userId_fkey",
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "emailVerificationToken"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "emailVerificationToken_userId_idx_a489d58a",
+                  "prefix": "emailVerificationToken_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ],
+                "name": "emailVerificationToken_pkey"
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "tokenHash"
+                  ],
+                  "name": "emailVerificationToken_tokenHash_key"
+                }
+              ]
+            },
             "lease": {
               "checks": [
                 {
@@ -5958,7 +6161,7 @@
                   "name": "property_status_check_aef30f3b"
                 },
                 {
-                  "expression": "(type = ANY (ARRAY['APARTMENT'::text, 'HOUSE'::text, 'STUDIO'::text, 'CONDO'::text, 'TOWNHOUSE'::text, 'OTHER'::text]))",
+                  "expression": "(type = ANY (ARRAY['APARTMENT'::text, 'HOUSE'::text, 'STUDIO'::text, 'CONDO'::text, 'TOWNHOUSE'::text, 'PG'::text, 'HOSTEL'::text, 'OTHER'::text]))",
                   "name": "property_type_check_9b6fee13"
                 }
               ],
@@ -7256,9 +7459,28 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "emailVerifiedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "googleId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
+                  "nullable": false
+                },
+                "isEmailVerified": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
                   "nullable": false
                 },
                 "name": {
@@ -7328,6 +7550,12 @@
                     "email"
                   ],
                   "name": "user_email_key"
+                },
+                {
+                  "columns": [
+                    "googleId"
+                  ],
+                  "name": "user_googleId_key"
                 }
               ]
             },
@@ -7724,7 +7952,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "355f7a30f327fd9022a16692f62d699fea998e7495e251e369833a94bc84f6e3"
+    "storageHash": "bbdee6521c9a2d96a5c9360a990d3d729034075603579cdd68a964a99ca896a8"
   },
   "capabilities": {
     "postgres": {

@@ -20,6 +20,10 @@ export class RoomService {
 			throw new NotFoundError('Property not found');
 		}
 
+		if (property.status === 'ARCHIVED') {
+			throw new ConflictError('Cannot add room to an archived property');
+		}
+
 		const id = crypto.randomUUID();
 		const room = await prisma.Room.create({
 			id,
@@ -32,7 +36,7 @@ export class RoomService {
 			deposit: input.deposit,
 			maxOccupants: input.maxOccupants,
 			occupiedSlots: 0,
-			photos: input.photos,
+			photos: input.photos ?? [],
 			status: 'AVAILABLE',
 			availableFrom: input.availableFrom
 				? toInstant(input.availableFrom)
@@ -176,6 +180,16 @@ export class RoomService {
 			const room = await txPrisma.Room.first({ id });
 			if (!room) {
 				throw new NotFoundError('Room not found');
+			}
+
+			const activeLeases = await txPrisma.Lease.where({
+				roomId: id,
+				status: 'ACTIVE',
+			}).all();
+			if (activeLeases && activeLeases.length > 0) {
+				throw new ConflictError(
+					'Cannot archive room with an active lease. Please terminate or expire the active lease first.',
+				);
 			}
 
 			const updated = await txPrisma.Room.where({ id }).update({

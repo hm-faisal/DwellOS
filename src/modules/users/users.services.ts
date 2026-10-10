@@ -1,3 +1,4 @@
+import { decrypt, encrypt } from '../../lib/crypto.ts';
 import { NotFoundError } from '../../lib/errors.ts';
 import { nowInstant, prisma, recordAuditLog } from '../../lib/prisma.ts';
 import { getRedisClient } from '../../lib/redis.ts';
@@ -10,13 +11,17 @@ export class UserService {
 			throw new NotFoundError('User not found');
 		}
 
+		const decryptedPhone = user.phone ? await decrypt(user.phone) : null;
+
 		return {
 			id: user.id,
 			email: user.email,
 			name: user.name,
-			phone: user.phone,
+			phone: decryptedPhone,
 			role: user.role,
 			status: user.status,
+			isEmailVerified: Boolean(user.isEmailVerified),
+			emailVerifiedAt: user.emailVerifiedAt,
 			stripeCustomerId: user.stripeCustomerId,
 			stripeAccountId: user.stripeAccountId,
 			createdAt: user.createdAt,
@@ -30,9 +35,14 @@ export class UserService {
 			throw new NotFoundError('User not found');
 		}
 
+		let phoneToStore = user.phone;
+		if (input.phone !== undefined) {
+			phoneToStore = input.phone ? encrypt(input.phone) : null;
+		}
+
 		const updated = await prisma.User.where({ id }).update({
 			name: input.name ?? user.name,
-			phone: input.phone ?? user.phone,
+			phone: phoneToStore,
 			stripeAccountId: input.stripeAccountId ?? user.stripeAccountId,
 			updatedAt: nowInstant(),
 		});
@@ -46,13 +56,16 @@ export class UserService {
 			afterState: { name: updated.name, phone: updated.phone },
 		});
 
+		const decryptedPhone = updated.phone ? await decrypt(updated.phone) : null;
+
 		return {
 			id: updated.id,
 			email: updated.email,
 			name: updated.name,
-			phone: updated.phone,
+			phone: decryptedPhone,
 			role: updated.role,
 			status: updated.status,
+			isEmailVerified: Boolean(updated.isEmailVerified),
 			stripeCustomerId: updated.stripeCustomerId,
 			stripeAccountId: updated.stripeAccountId,
 			createdAt: updated.createdAt,
@@ -71,9 +84,14 @@ export class UserService {
 			updatedAt: nowInstant(),
 		});
 
-		// Invalidate active session / refresh token in Redis
+		// Invalidate active session and all token families in Redis
 		try {
 			const redis = getRedisClient();
+			const families = await redis.smembers(`dwellos:user:families:${id}`);
+			for (const fam of families) {
+				await redis.del(`dwellos:refresh:family:${fam}`);
+			}
+			await redis.del(`dwellos:user:families:${id}`);
 			await redis.del(`dwellos:refresh:${id}`);
 		} catch {
 			// fallback

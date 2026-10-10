@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../lib/auth-middleware.ts';
-import { requireRoles } from '../../lib/rbac.ts';
+import { requireRoles, requireVerifiedEmail } from '../../lib/rbac.ts';
 import { validateRequest } from '../../middlewares/validateRequest.middleware.ts';
 import { VerificationController } from './verification.controllers.ts';
 import {
@@ -15,6 +15,7 @@ const router = Router();
 router.post(
 	'/',
 	authenticate,
+	requireVerifiedEmail,
 	validateRequest(submitVerificationSchema),
 	VerificationController.submitVerification,
 );

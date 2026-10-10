@@ -12,6 +12,36 @@ export const nowInstant = (): Temporal.Instant => {
 };
 
 /**
+ * Safely parses any date or timestamp string into a Temporal.Instant.
+ * Handles:
+ * - RFC 3339 / ISO 8601 with offset/UTC (e.g. "2026-10-10T00:00:00Z", "2026-10-10T00:00:00+06:00")
+ * - Date-time strings without timezone (e.g. "2026-10-10T14:30:00")
+ * - Date-only strings (e.g. "2026-10-10")
+ * - Standard JavaScript Date strings (e.g. "Sat Oct 10 2026 12:00:00 GMT+0000")
+ */
+function parseStringToInstant(str: string): Temporal.Instant {
+	try {
+		return Temporal.Instant.from(str);
+	} catch {
+		try {
+			return Temporal.PlainDateTime.from(str)
+				.toZonedDateTime('UTC')
+				.toInstant();
+		} catch {
+			try {
+				return Temporal.PlainDate.from(str).toZonedDateTime('UTC').toInstant();
+			} catch {
+				const d = new Date(str);
+				if (!Number.isNaN(d.getTime())) {
+					return Temporal.Instant.fromEpochMilliseconds(d.getTime());
+				}
+				throw new RangeError(`Cannot parse Temporal.Instant from: ${str}`);
+			}
+		}
+	}
+}
+
+/**
  * Converts a Date, ISO string, epoch millisecond timestamp, or Temporal.Instant
  * into a valid Temporal.Instant for Prisma 8 queries and mutations.
  */
@@ -33,6 +63,12 @@ export function toInstant(
 	) {
 		return value as Temporal.Instant;
 	}
+	if (typeof (value as any).toInstant === 'function') {
+		return (value as any).toInstant();
+	}
+	if (typeof (value as any).toZonedDateTime === 'function') {
+		return (value as any).toZonedDateTime('UTC').toInstant();
+	}
 	if (value instanceof Date) {
 		return Temporal.Instant.fromEpochMilliseconds(value.getTime());
 	}
@@ -40,13 +76,13 @@ export function toInstant(
 		return Temporal.Instant.fromEpochMilliseconds(value);
 	}
 	if (typeof value === 'string') {
-		return Temporal.Instant.from(value);
+		return parseStringToInstant(value);
 	}
 	if (typeof (value as any).toString === 'function') {
 		try {
 			const str = (value as any).toString();
 			if (str && str !== '[object Object]') {
-				return Temporal.Instant.from(str);
+				return parseStringToInstant(str);
 			}
 		} catch {
 			// fall through

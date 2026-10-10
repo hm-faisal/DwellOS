@@ -54,9 +54,23 @@ export const envConfig = {
 
 	jwt: {
 		secret: getEnv('JWT_SECRET', 'super-secret-jwt-key'),
-		expiresIn: getEnv('JWT_EXPIRES_IN', '7d'),
+		expiresIn: getEnv('JWT_EXPIRES_IN', '15m'),
 		refreshSecret: getEnv('JWT_REFRESH_SECRET', 'super-secret-refresh-key'),
 		refreshExpiresIn: getEnv('JWT_REFRESH_EXPIRES_IN', '30d'),
+	},
+
+	encryptionKey: getEnv(
+		'ENCRYPTION_KEY',
+		getEnv('JWT_SECRET', 'dwellos-aes-256-gcm-master-key-32b'),
+	),
+
+	google: {
+		clientId: getEnv('GOOGLE_CLIENT_ID', ''),
+		clientSecret: getEnv('GOOGLE_CLIENT_SECRET', ''),
+		callbackUrl: getEnv(
+			'GOOGLE_CALLBACK_URL',
+			'http://localhost:5000/api/v1/auth/oauth/google/callback',
+		),
 	},
 } as const;
 

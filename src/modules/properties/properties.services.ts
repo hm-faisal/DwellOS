@@ -154,6 +154,16 @@ export class PropertyService {
 			throw new NotFoundError('Property not found');
 		}
 
+		const activeLeases = await prisma.Lease.where({
+			propertyId: id,
+			status: 'ACTIVE',
+		}).all();
+		if (activeLeases && activeLeases.length > 0) {
+			throw new ConflictError(
+				'Cannot archive property with active leases. Please terminate or expire active leases first.',
+			);
+		}
+
 		await prisma.Property.where({ id }).update({
 			status: 'ARCHIVED',
 			updatedAt: nowInstant(),

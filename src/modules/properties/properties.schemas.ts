@@ -14,6 +14,8 @@ export const createPropertySchema = z.object({
 				'STUDIO',
 				'CONDO',
 				'TOWNHOUSE',
+				'PG',
+				'HOSTEL',
 				'OTHER',
 			]),
 			address: z
@@ -77,7 +79,16 @@ export const updatePropertySchema = z.object({
 		.object({
 			name: z.string().trim().min(2).max(200).optional(),
 			type: z
-				.enum(['APARTMENT', 'HOUSE', 'STUDIO', 'CONDO', 'TOWNHOUSE', 'OTHER'])
+				.enum([
+					'APARTMENT',
+					'HOUSE',
+					'STUDIO',
+					'CONDO',
+					'TOWNHOUSE',
+					'PG',
+					'HOSTEL',
+					'OTHER',
+				])
 				.optional(),
 			address: z.string().trim().min(3).max(300).optional(),
 			city: z.string().trim().min(2).max(100).optional(),

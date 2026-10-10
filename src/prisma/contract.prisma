@@ -5,6 +5,9 @@ model User {
   id                           String                  @id(map: "user_pkey")
   createdAt                    Timestamptz             @default(now())
   email                        String                  @unique(map: "user_email_key")
+  emailVerifiedAt              Timestamptz?
+  googleId                     String?                 @unique(map: "user_googleId_key")
+  isEmailVerified              Boolean                 @default(false)
   name                         String
   password                     String
   phone                        String?
@@ -18,6 +21,7 @@ model User {
   disputes                     Dispute[]
   documentAuditLogs            DocumentAuditLog[]
   documentSignatures           DocumentSignature[]
+  emailVerificationTokens      EmailVerificationToken[]
   leaseTenants                 LeaseTenant[]
   maintenanceRequests          MaintenanceRequest[]
   notifications                Notification[]
@@ -66,7 +70,7 @@ model Property {
 
   @@index([ownerId], name: "property_ownerId_idx")
   @@check(expression: "(status = ANY (ARRAY['ACTIVE'::text, 'ARCHIVED'::text]))", map: "property_status_check_aef30f3b")
-  @@check(expression: "(type = ANY (ARRAY['APARTMENT'::text, 'HOUSE'::text, 'STUDIO'::text, 'CONDO'::text, 'TOWNHOUSE'::text, 'OTHER'::text]))", map: "property_type_check_9b6fee13")
+  @@check(expression: "(type = ANY (ARRAY['APARTMENT'::text, 'HOUSE'::text, 'STUDIO'::text, 'CONDO'::text, 'TOWNHOUSE'::text, 'PG'::text, 'HOSTEL'::text, 'OTHER'::text]))", map: "property_type_check_9b6fee13")
   @@map("property")
 }
 
@@ -561,4 +565,16 @@ model ViewingRequest {
   @@check(expression: "(status = ANY (ARRAY['REQUESTED'::text, 'CONFIRMED'::text, 'ALTERNATE_PROPOSED'::text, 'DECLINED'::text, 'COMPLETED'::text, 'CANCELLED'::text, 'NO_SHOW'::text]))", map: "viewingRequest_status_check_ba1fa1b3")
   @@check(expression: "(type = ANY (ARRAY['IN_PERSON'::text, 'VIRTUAL'::text]))", map: "viewingRequest_type_check_004541db")
   @@map("viewingRequest")
+}
+
+model EmailVerificationToken {
+  id        String      @id(map: "emailVerificationToken_pkey")
+  createdAt Timestamptz @default(now())
+  expiresAt Timestamptz
+  tokenHash String      @unique(map: "emailVerificationToken_tokenHash_key")
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "emailVerificationToken_userId_fkey")
+
+  @@index([userId], name: "emailVerificationToken_userId_idx")
+  @@map("emailVerificationToken")
 }

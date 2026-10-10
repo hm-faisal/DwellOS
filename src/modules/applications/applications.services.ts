@@ -3,6 +3,7 @@ import {
 	ConflictError,
 	NotFoundError,
 } from '../../lib/errors.ts';
+import { getPgPool } from '../../lib/pg.ts';
 import {
 	db,
 	getOrmClient,
@@ -245,33 +246,56 @@ export class ApplicationService {
 	 * Transactional approval:
 	 * Locks Room, creates Lease + LeaseTenant, sets Room.status=OCCUPIED, auto-rejects competing applications, writes AuditLog
 	 */
+	/**
+	 * Transactional approval:
+	 * Acquires PostgreSQL exclusive row lock (FOR UPDATE) on Room and Application,
+	 * creates Lease + LeaseTenant, sets Room.status=OCCUPIED, auto-rejects competing applications, writes AuditLog.
+	 * Guarantees zero double-booking under high concurrency (§6.1 / FR-1.6).
+	 */
 	async approveApplication(
 		applicationId: string,
 		input?: ApproveApplicationInput,
 		actorId?: string,
 	) {
-		return await db.transaction(async (tx) => {
-			const txPrisma = getOrmClient(tx);
+		const client = await getPgPool().connect();
+		try {
+			await client.query('BEGIN');
 
-			const application = await txPrisma.Application.first({
-				id: applicationId,
-			});
-			if (!application) {
+			// 1. Lock and fetch application
+			const appRes = await client.query(
+				'SELECT * FROM "application" WHERE id = $1 FOR UPDATE',
+				[applicationId],
+			);
+			if (appRes.rowCount === 0) {
 				throw new NotFoundError('Application not found');
 			}
+			const application = appRes.rows[0];
 
 			if (application.status === 'APPROVED') {
 				throw new BusinessRuleError('Application has already been approved');
 			}
-
-			const room = await txPrisma.Room.first({ id: application.roomId });
-			if (!room) {
-				throw new NotFoundError('Room not found');
+			if (
+				application.status !== 'SUBMITTED' &&
+				application.status !== 'UNDER_REVIEW'
+			) {
+				throw new BusinessRuleError(
+					`Application cannot be approved from status ${application.status}`,
+				);
 			}
 
-			// Optimistic concurrency check
+			// 2. Lock and fetch room
+			const roomRes = await client.query(
+				'SELECT * FROM "room" WHERE id = $1 FOR UPDATE',
+				[application.roomId],
+			);
+			if (roomRes.rowCount === 0) {
+				throw new NotFoundError('Room not found');
+			}
+			const room = roomRes.rows[0];
+
+			// Optimistic concurrency check if expectedRoomVersion provided
 			if (
-				input?.expectedRoomVersion &&
+				input?.expectedRoomVersion !== undefined &&
 				input.expectedRoomVersion !== room.version
 			) {
 				throw new ConflictError(
@@ -280,7 +304,7 @@ export class ApplicationService {
 			}
 
 			if (
-				room.status === 'OCCUPIED' &&
+				room.status === 'OCCUPIED' ||
 				room.occupiedSlots >= room.maxOccupants
 			) {
 				throw new ConflictError('Room is already fully occupied');
@@ -289,155 +313,181 @@ export class ApplicationService {
 			const nextOccupiedSlots = room.occupiedSlots + 1;
 			const isFullyOccupied = nextOccupiedSlots >= room.maxOccupants;
 			const nextRoomStatus = isFullyOccupied ? 'OCCUPIED' : room.status;
+			const nextRoomVersion = room.version + 1;
 
-			// 1. Update room status & version
-			const updatedRoom = await txPrisma.Room.where({ id: room.id }).update({
-				status: nextRoomStatus,
-				occupiedSlots: nextOccupiedSlots,
-				version: room.version + 1,
-				updatedAt: nowInstant(),
-			});
+			// 3. Update room status & version
+			await client.query(
+				`UPDATE "room" SET "occupiedSlots" = $1, status = $2, version = $3, "updatedAt" = NOW() WHERE id = $4`,
+				[nextOccupiedSlots, nextRoomStatus, nextRoomVersion, room.id],
+			);
 
-			await recordAuditLog(txPrisma, {
-				actorId,
-				entityType: 'Room',
-				entityId: room.id,
-				action: 'ROOM_OCCUPIED',
-				beforeState: {
-					status: room.status,
-					occupiedSlots: room.occupiedSlots,
-					version: room.version,
-				},
-				afterState: {
-					status: updatedRoom.status,
-					occupiedSlots: updatedRoom.occupiedSlots,
-					version: updatedRoom.version,
-				},
-			});
+			await client.query(
+				`INSERT INTO "auditLog" (id, "actorId", "entityType", "entityId", action, "beforeState", "afterState", "createdAt")
+				 VALUES ($1, $2, 'Room', $3, 'ROOM_OCCUPIED', $4, $5, NOW())`,
+				[
+					crypto.randomUUID(),
+					actorId ?? null,
+					room.id,
+					JSON.stringify({
+						status: room.status,
+						occupiedSlots: room.occupiedSlots,
+						version: room.version,
+					}),
+					JSON.stringify({
+						status: nextRoomStatus,
+						occupiedSlots: nextOccupiedSlots,
+						version: nextRoomVersion,
+					}),
+				],
+			);
 
-			// 2. Create Lease
-			const startDate =
-				(input?.leaseStartDate
-					? toInstant(input.leaseStartDate)
-					: toInstant(application.moveInDate)) ?? nowInstant();
-			const endDate =
-				(input?.leaseEndDate
-					? toInstant(input.leaseEndDate)
-					: toInstant(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))) ??
-				toInstant(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))!;
-
+			// 4. Create Lease
 			const leaseId = crypto.randomUUID();
-			const lease = await txPrisma.Lease.create({
-				id: leaseId,
-				propertyId: room.propertyId,
-				roomId: room.id,
-				startDate,
-				endDate,
-				rent: input?.rent ?? room.rent,
-				deposit: input?.deposit ?? room.deposit,
-				billingCycle: input?.billingCycle ?? 'MONTHLY',
-				billingDayOfMonth: input?.billingDayOfMonth ?? 1,
-				status: 'ACTIVE',
-				createdAt: nowInstant(),
-				updatedAt: nowInstant(),
-			});
+			const rent = input?.rent ?? room.rent;
+			const deposit = input?.deposit ?? room.deposit;
+			const billingCycle = input?.billingCycle ?? 'MONTHLY';
+			const billingDayOfMonth = input?.billingDayOfMonth ?? 1;
+			const startDate = input?.leaseStartDate
+				? new Date(input.leaseStartDate)
+				: new Date(application.moveInDate);
+			const endDate = input?.leaseEndDate
+				? new Date(input.leaseEndDate)
+				: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
-			await recordAuditLog(txPrisma, {
-				actorId,
-				entityType: 'Lease',
-				entityId: leaseId,
-				action: 'LEASE_CREATE_FROM_APPROVAL',
-				afterState: lease,
-			});
+			await client.query(
+				`INSERT INTO "lease" (id, "propertyId", "roomId", "startDate", "endDate", rent, deposit, "billingCycle", "billingDayOfMonth", status, "createdAt", "updatedAt")
+				 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ACTIVE', NOW(), NOW())`,
+				[
+					leaseId,
+					room.propertyId,
+					room.id,
+					startDate,
+					endDate,
+					rent,
+					deposit,
+					billingCycle,
+					billingDayOfMonth,
+				],
+			);
 
-			// 3. Create LeaseTenant
-			const leaseTenant = await txPrisma.LeaseTenant.create({
-				id: crypto.randomUUID(),
-				leaseId,
-				tenantId: application.tenantId,
-				joinedAt: nowInstant(),
-				isPrimary: true,
-			});
+			await client.query(
+				`INSERT INTO "auditLog" (id, "actorId", "entityType", "entityId", action, "afterState", "createdAt")
+				 VALUES ($1, $2, 'Lease', $3, 'LEASE_CREATE_FROM_APPROVAL', $4, NOW())`,
+				[
+					crypto.randomUUID(),
+					actorId ?? null,
+					leaseId,
+					JSON.stringify({
+						id: leaseId,
+						propertyId: room.propertyId,
+						roomId: room.id,
+						rent,
+						deposit,
+					}),
+				],
+			);
 
-			// 4. Update this application to APPROVED
-			const approvedApp = await txPrisma.Application.where({
-				id: applicationId,
-			}).update({
-				status: 'APPROVED',
-				updatedAt: nowInstant(),
-			});
+			// 5. Create LeaseTenant
+			const leaseTenantId = crypto.randomUUID();
+			await client.query(
+				`INSERT INTO "leaseTenant" (id, "leaseId", "tenantId", "isPrimary", "joinedAt")
+				 VALUES ($1, $2, $3, true, NOW())`,
+				[leaseTenantId, leaseId, application.tenantId],
+			);
 
-			await recordAuditLog(txPrisma, {
-				actorId,
-				entityType: 'Application',
-				entityId: applicationId,
-				action: 'APPLICATION_APPROVE',
-				beforeState: { status: application.status },
-				afterState: { status: 'APPROVED' },
-			});
+			// 6. Update this application to APPROVED
+			await client.query(
+				`UPDATE "application" SET status = 'APPROVED', "updatedAt" = NOW() WHERE id = $1`,
+				[applicationId],
+			);
 
-			// 5. Auto-reject competing applications if room is now full
+			await client.query(
+				`INSERT INTO "auditLog" (id, "actorId", "entityType", "entityId", action, "beforeState", "afterState", "createdAt")
+				 VALUES ($1, $2, 'Application', $3, 'APPLICATION_APPROVE', $4, $5, NOW())`,
+				[
+					crypto.randomUUID(),
+					actorId ?? null,
+					applicationId,
+					JSON.stringify({ status: application.status }),
+					JSON.stringify({ status: 'APPROVED' }),
+				],
+			);
+
+			// 7. Auto-reject competing applications if room is now full
 			if (isFullyOccupied) {
-				const competingApps = await txPrisma.Application.where((a: any) =>
-					a.roomId.eq(room.id),
-				).all();
+				const competingRes = await client.query(
+					`SELECT id, "tenantId" FROM "application"
+					 WHERE "roomId" = $1 AND id != $2 AND status IN ('SUBMITTED', 'UNDER_REVIEW')`,
+					[room.id, applicationId],
+				);
 
-				for (const compApp of competingApps) {
-					if (
-						compApp.id !== applicationId &&
-						(compApp.status === 'SUBMITTED' ||
-							compApp.status === 'UNDER_REVIEW')
-					) {
-						await txPrisma.Application.where({ id: compApp.id }).update({
-							status: 'REJECTED',
-							notes:
-								'Auto-rejected due to room occupancy filled by another applicant',
-							updatedAt: nowInstant(),
-						});
+				for (const compApp of competingRes.rows) {
+					await client.query(
+						`UPDATE "application" SET status = 'REJECTED', notes = 'Auto-rejected due to room occupancy filled by another applicant', "updatedAt" = NOW() WHERE id = $1`,
+						[compApp.id],
+					);
 
-						await recordAuditLog(txPrisma, {
-							actorId,
-							entityType: 'Application',
-							entityId: compApp.id,
-							action: 'APPLICATION_AUTO_REJECT',
-							metadata: { reason: 'Competing application approved' },
-						});
+					await client.query(
+						`INSERT INTO "auditLog" (id, "actorId", "entityType", "entityId", action, metadata, "createdAt")
+						 VALUES ($1, $2, 'Application', $3, 'APPLICATION_AUTO_REJECT', $4, NOW())`,
+						[
+							crypto.randomUUID(),
+							actorId ?? null,
+							compApp.id,
+							JSON.stringify({ reason: 'Competing application approved' }),
+						],
+					);
 
-						await txPrisma.Notification.create({
-							id: crypto.randomUUID(),
-							userId: compApp.tenantId,
-							title: 'Application Update',
-							message:
-								'The room you applied for has been occupied by another applicant.',
-							category: 'APPLICATION',
-							channel: 'IN_APP',
-							isRead: false,
-							createdAt: nowInstant(),
-						});
-					}
+					await client.query(
+						`INSERT INTO "notification" (id, "userId", title, message, category, channel, "isRead", "createdAt")
+						 VALUES ($1, $2, 'Application Update', 'The room you applied for has been occupied by another applicant.', 'APPLICATION', 'IN_APP', false, NOW())`,
+						[crypto.randomUUID(), compApp.tenantId],
+					);
 				}
 			}
 
-			// 6. Notify the approved applicant
-			await txPrisma.Notification.create({
-				id: crypto.randomUUID(),
-				userId: application.tenantId,
-				title: 'Application Approved! 🎉',
-				message: `Congratulations! Your application for room ${room.name} has been approved. A lease agreement has been generated.`,
-				category: 'APPLICATION',
-				channel: 'IN_APP',
-				isRead: false,
-				data: JSON.stringify({ leaseId: lease.id, applicationId }),
-				createdAt: nowInstant(),
-			});
+			// 8. Notify the approved applicant
+			await client.query(
+				`INSERT INTO "notification" (id, "userId", title, message, category, channel, "isRead", data, "createdAt")
+				 VALUES ($1, $2, 'Application Approved! 🎉', $3, 'APPLICATION', 'IN_APP', false, $4, NOW())`,
+				[
+					crypto.randomUUID(),
+					application.tenantId,
+					`Congratulations! Your application for room ${room.name} has been approved. A lease agreement has been generated.`,
+					JSON.stringify({ leaseId, applicationId }),
+				],
+			);
+
+			await client.query('COMMIT');
 
 			return {
-				application: approvedApp,
-				lease,
-				leaseTenant,
-				room: updatedRoom,
+				application: { ...application, status: 'APPROVED' },
+				lease: {
+					id: leaseId,
+					propertyId: room.propertyId,
+					roomId: room.id,
+					rent,
+					deposit,
+					status: 'ACTIVE',
+				},
+				leaseTenant: {
+					id: leaseTenantId,
+					leaseId,
+					tenantId: application.tenantId,
+				},
+				room: {
+					...room,
+					status: nextRoomStatus,
+					occupiedSlots: nextOccupiedSlots,
+					version: nextRoomVersion,
+				},
 			};
-		});
+		} catch (error) {
+			await client.query('ROLLBACK');
+			throw error;
+		} finally {
+			client.release();
+		}
 	}
 }
 

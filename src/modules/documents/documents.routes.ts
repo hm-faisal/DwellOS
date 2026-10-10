@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../lib/auth-middleware.ts';
-import { requireLeaseScope } from '../../lib/rbac.ts';
+import { requireLeaseScope, requireVerifiedEmail } from '../../lib/rbac.ts';
 import { validateRequest } from '../../middlewares/validateRequest.middleware.ts';
 import { DocumentController } from './documents.controllers.ts';
 import {
@@ -36,6 +36,7 @@ router.get(
 router.post(
 	'/documents/:id/sign',
 	authenticate,
+	requireVerifiedEmail,
 	validateRequest(signDocumentSchema),
 	DocumentController.signDocument,
 );

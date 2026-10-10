@@ -1,5 +1,17 @@
 import { z } from 'zod';
 
+export const passwordComplexitySchema = z
+	.string()
+	.min(8, 'Password must be at least 8 characters')
+	.max(128, 'Password cannot exceed 128 characters')
+	.regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+	.regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+	.regex(/\d/, 'Password must contain at least one numeric digit')
+	.regex(
+		/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
+		'Password must contain at least one special character',
+	);
+
 export const registerSchema = z.object({
 	body: z
 		.object({
@@ -8,10 +20,7 @@ export const registerSchema = z.object({
 				.trim()
 				.email('Invalid email address format')
 				.toLowerCase(),
-			password: z
-				.string()
-				.min(8, 'Password must be at least 8 characters')
-				.max(128, 'Password cannot exceed 128 characters'),
+			password: passwordComplexitySchema,
 			name: z
 				.string()
 				.trim()
@@ -22,6 +31,16 @@ export const registerSchema = z.object({
 		})
 		.strict(),
 });
+
+export const updatePasswordSchema = z.object({
+	body: z
+		.object({
+			currentPassword: z.string().min(1, 'Current password is required'),
+			newPassword: passwordComplexitySchema,
+		})
+		.strict(),
+});
+
 
 export const loginSchema = z.object({
 	body: z
@@ -72,6 +91,30 @@ export const refreshTokenSchema = z.object({
 		.strict(),
 });
 
+export const verifyEmailSchema = z.object({
+	body: z
+		.object({
+			token: z.string().trim().min(1, 'Verification token is required'),
+		})
+		.strict(),
+});
+
+export const resendVerificationSchema = z.object({
+	body: z
+		.object({
+			email: z
+				.string()
+				.trim()
+				.email('Invalid email address format')
+				.toLowerCase(),
+		})
+		.strict(),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>['body'];
 export type LoginInput = z.infer<typeof loginSchema>['body'];
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>['body'];
+export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>['body'];
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>['body'];
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>['body'];
+

@@ -15,6 +15,7 @@ import rentRoutes from '../modules/rent/rent.routes.ts';
 import roommateMatchingRoutes from '../modules/roommate-matching/roommate-matching.routes.ts';
 import roomRoutes from '../modules/rooms/rooms.routes.ts';
 import searchRoutes from '../modules/search/search.routes.ts';
+import uploadRoutes from '../modules/uploads/uploads.routes.ts';
 import userRoutes from '../modules/users/users.routes.ts';
 import utilityBillRoutes from '../modules/utility-bills/utility-bills.routes.ts';
 import verificationRoutes from '../modules/verification/verification.routes.ts';
@@ -42,6 +43,7 @@ const moduleRoutes = [
 	{ path: '/notification-preferences', route: notificationPreferencesRoutes },
 	{ path: '/dashboard', route: dashboardRoutes },
 	{ path: '/admin', route: adminRoutes },
+	{ path: '/uploads', route: uploadRoutes },
 ];
 
 for (const item of moduleRoutes) {

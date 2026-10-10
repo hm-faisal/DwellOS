@@ -1,4 +1,8 @@
-import { BusinessRuleError, NotFoundError } from '../../lib/errors.ts';
+import {
+	BusinessRuleError,
+	ForbiddenError,
+	NotFoundError,
+} from '../../lib/errors.ts';
 import {
 	nowInstant,
 	paginateResults,
@@ -351,6 +355,48 @@ export class RoommateMatchingService {
 		const approver = await prisma.User.first({ id: approverId });
 		if (!approver) {
 			throw new NotFoundError('Approver user not found');
+		}
+
+		// Enforce role authorization: ADMIN, Owner, delegated PropertyManager, or active Roommate on this shared room
+		if (approver.role !== 'ADMIN') {
+			const property = await prisma.Property.first({ id: room.propertyId });
+			const isOwner = property?.ownerId === approverId;
+			const manager = await prisma.PropertyManager.first({
+				propertyId: room.propertyId,
+				userId: approverId,
+			});
+
+			if (!isOwner && !manager) {
+				const roomType = (room as any)._type || room.type;
+				if (roomType !== 'SHARED') {
+					throw new ForbiddenError(
+						'Roommate approval is only applicable for shared rooms',
+					);
+				}
+
+				const activeLeases = await prisma.Lease.where({
+					roomId,
+					status: 'ACTIVE',
+				}).all();
+
+				let hasActiveLeaseInRoom = false;
+				for (const lease of activeLeases) {
+					const lt = await prisma.LeaseTenant.first({
+						leaseId: lease.id,
+						tenantId: approverId,
+					});
+					if (lt) {
+						hasActiveLeaseInRoom = true;
+						break;
+					}
+				}
+
+				if (!hasActiveLeaseInRoom) {
+					throw new ForbiddenError(
+						'Active roommate tenancy in this shared room is required to vote on roommate applications',
+					);
+				}
+			}
 		}
 
 		let applicationId = input.applicationId ?? null;
